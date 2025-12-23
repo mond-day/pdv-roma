@@ -22,7 +22,7 @@ export function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  const [lastLogoUpdate, setLastLogoUpdate] = useState<number>(0);
+  const lastLogoUpdateRef = useRef<number>(0); // useRef para evitar closure issue
   const [user, setUser] = useState<{ name: string; email: string; role: string } | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -86,10 +86,10 @@ export function Sidebar() {
         const logoFromEvent = (event as CustomEvent).detail.logo;
         console.log("Logo recebida via evento:", logoFromEvent.substring(0, 50) + "...");
         setLogoUrl(logoFromEvent);
-        setLastLogoUpdate(Date.now()); // Marca timestamp da atualização manual
+        lastLogoUpdateRef.current = Date.now(); // Marca timestamp da atualização manual
       } else {
         // Caso contrário, recarregar da API (mas só se não houve atualização manual recente)
-        const timeSinceLastUpdate = Date.now() - lastLogoUpdate;
+        const timeSinceLastUpdate = Date.now() - lastLogoUpdateRef.current;
         if (timeSinceLastUpdate > 15000) { // 15 segundos
           loadLogo();
         }
@@ -114,7 +114,7 @@ export function Sidebar() {
           if (logoFromStorage) {
             console.log("Logo encontrada no localStorage, usando...");
             setLogoUrl(logoFromStorage);
-            setLastLogoUpdate(Date.now()); // Marca timestamp
+            lastLogoUpdateRef.current = Date.now(); // Marca timestamp
           } else {
             loadLogo();
           }
@@ -125,7 +125,7 @@ export function Sidebar() {
 
     // Também verificar periodicamente (fallback), mas não sobrescrever logos recém-atualizadas
     const interval = setInterval(() => {
-      const timeSinceLastUpdate = Date.now() - lastLogoUpdate;
+      const timeSinceLastUpdate = Date.now() - lastLogoUpdateRef.current;
       if (timeSinceLastUpdate > 15000) { // Só recarrega se passou mais de 15 segundos da última atualização manual
         loadLogo();
       }
