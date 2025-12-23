@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 
 export function successResponse<T>(data: T, status = 200) {
-  return NextResponse.json(data, { status });
+  return NextResponse.json(data, {
+    status,
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+    },
+  });
 }
 
 export function errorResponse(
@@ -16,7 +21,12 @@ export function errorResponse(
   if (details !== undefined && details !== null) {
     response.details = details;
   }
-  return NextResponse.json(response, { status });
+  return NextResponse.json(response, {
+    status,
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+    },
+  });
 }
 
 export function unauthorizedResponse(message = "Não autorizado") {

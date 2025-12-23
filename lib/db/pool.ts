@@ -26,6 +26,8 @@ try {
       connectionTimeoutMillis: 5000, // Aumentado para 5s
       // Configurações adicionais para evitar crashes
       allowExitOnIdle: false,
+      // Garantir encoding UTF-8
+      client_encoding: "UTF8",
     });
   }
 

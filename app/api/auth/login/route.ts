@@ -11,17 +11,36 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validated = LoginBodySchema.parse(body);
 
+    console.log("🔐 Tentativa de login:", { email: validated.email });
+
     const user = await getUserByEmail(validated.email);
 
-    if (!user || !user.is_active) {
+    if (!user) {
+      console.log("❌ Usuário não encontrado:", validated.email);
       return errorResponse("Email ou senha inválidos", 401);
     }
 
+    console.log("✅ Usuário encontrado:", {
+      id: user.id,
+      email: user.email,
+      is_active: user.is_active,
+      role: user.role,
+    });
+
+    if (!user.is_active) {
+      console.log("❌ Usuário inativo:", validated.email);
+      return errorResponse("Email ou senha inválidos", 401);
+    }
+
+    console.log("🔑 Verificando senha...");
     const isValid = await verifyPassword(validated.password, user.password_hash);
 
     if (!isValid) {
+      console.log("❌ Senha inválida para:", validated.email);
       return errorResponse("Email ou senha inválidos", 401);
     }
+
+    console.log("✅ Senha válida! Criando sessão...");
 
     const sessionUser = {
       id: user.id,

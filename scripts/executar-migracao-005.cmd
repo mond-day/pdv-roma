@@ -1,8 +1,8 @@
 @echo off
 chcp 65001 >nul
 echo ========================================
-echo   EXECUTAR MIGRAÇÃO 004
-echo   (Appsmith Schema Alignment)
+echo   EXECUTAR MIGRAÇÃO 005
+echo   (Correção de Encoding UTF-8)
 echo ========================================
 echo.
 
@@ -49,19 +49,22 @@ echo.
 REM Solicitar senha do PostgreSQL
 echo [INFO] Será solicitada a senha do PostgreSQL
 echo.
-
-REM Executar migração
-echo [1/1] Executando migração 004 (Appsmith Schema Alignment)...
+echo [INFO] Esta migração corrige textos com encoding incorreto nas notificações
+echo        Exemplos: "integraÃ§Ã£o" será corrigido para "integração"
 echo.
 
-"%PSQL_PATH%" -U postgres -d pdv_roma -f "lib\db\migrations\004_appsmith_schema_alignment.sql"
+REM Executar migração
+echo [1/1] Executando migração 005 (Correção de Encoding UTF-8)...
+echo.
+
+"%PSQL_PATH%" -U postgres -d pdv_roma -f "lib\db\migrations\005_fix_encoding_notificacoes.sql"
 
 if %errorlevel% equ 0 (
     echo.
     echo [SUCESSO] Migração executada com sucesso!
     echo.
-    echo [INFO] Agora você pode executar o seed:
-    echo        executar-seed.cmd
+    echo [INFO] Os textos das notificações foram corrigidos para UTF-8
+    echo        Reinicie o servidor para aplicar as mudanças
 ) else (
     echo.
     echo [ERRO] Falha ao executar migração

@@ -27,9 +27,14 @@ export async function GET(request: NextRequest) {
     return successResponse(response);
   } catch (error) {
     if (error instanceof Error && error.name === "ZodError") {
+      console.error("Erro de validação no dashboard:", error);
       return errorResponse("Parâmetros inválidos", 400, error);
     }
     console.error("Erro no dashboard:", error);
+    if (error instanceof Error) {
+      console.error("Stack trace:", error.stack);
+      return errorResponse(`Erro ao buscar dados do dashboard: ${error.message}`, 500, error);
+    }
     return errorResponse("Erro ao buscar dados do dashboard", 500);
   }
 }
