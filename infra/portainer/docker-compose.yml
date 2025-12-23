@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  pdv-roma:
+    image: ghcr.io/USERNAME/pdv-roma:latest
+    container_name: pdv-roma
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - MASTER_KEY=${MASTER_KEY}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - NODE_ENV=production
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pdv-roma.rule=Host(`pdv-roma.example.com`)"
+      - "traefik.http.routers.pdv-roma.entrypoints=websecure"
+      - "traefik.http.routers.pdv-roma.tls.certresolver=letsencrypt"
+      - "traefik.http.services.pdv-roma.loadbalancer.server.port=3000"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
