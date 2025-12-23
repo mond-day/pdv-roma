@@ -142,8 +142,13 @@ export default function CarregamentosPage() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {data.items.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
-                      Nenhum carregamento encontrado
+                    <td colSpan={6} className="px-4 py-8 text-center">
+                      <div className="flex flex-col items-center space-y-2">
+                        <p className="text-gray-500">Nenhum carregamento encontrado nos últimos 7 dias</p>
+                        <p className="text-sm text-gray-400">
+                          Execute o seed de dados fake: <code className="bg-gray-100 px-2 py-1 rounded">executar-seed.cmd</code>
+                        </p>
+                      </div>
                     </td>
                   </tr>
                 ) : (

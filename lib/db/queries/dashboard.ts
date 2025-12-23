@@ -1,13 +1,13 @@
 import { pool } from "../pool";
 
 export async function getDashboardData(date: string) {
-  // KPIs do dia
+  // KPIs do dia - Aceitar tanto 'finalizado' quanto 'concluido' para compatibilidade
   const kpisResult = await pool.query(
     `
-    SELECT 
+    SELECT
       COUNT(*)::int as total,
       COUNT(*) FILTER (WHERE status = 'stand-by')::int as standby,
-      COUNT(*) FILTER (WHERE status = 'concluido')::int as finalizado,
+      COUNT(*) FILTER (WHERE status IN ('finalizado', 'concluido'))::int as finalizado,
       COUNT(*) FILTER (WHERE status = 'cancelado')::int as cancelado
     FROM carregamentos
     WHERE CAST(data_carregamento AS DATE) = CAST($1 AS DATE)

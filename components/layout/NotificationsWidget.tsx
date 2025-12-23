@@ -85,7 +85,7 @@ export function NotificationsWidget() {
       </button>
 
       {isOpen && (
-        <div className="absolute left-full ml-2 top-0 w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-[600px] flex flex-col">
+        <div className="absolute left-full ml-2 bottom-0 w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-[calc(100vh-100px)] flex flex-col">
           <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
             <h3 className="text-lg font-semibold text-gray-900">Notificações</h3>
             <Button

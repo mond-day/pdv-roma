@@ -141,6 +141,31 @@ export default function HistoricoPage() {
     });
   }, [filters]);
 
+  // Handlers para FilterBar - definidos no corpo do componente
+  const handleFilterChange = useCallback((key: string, value: string) => {
+    setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
+  }, []);
+
+  const handleFilterChangeRange = useCallback((key: string, valueInicio: string, valueFim: string) => {
+    setFilters((prev) => ({ ...prev, dateInicio: valueInicio, dateFim: valueFim, page: 1 }));
+  }, []);
+
+  const handleReset = useCallback(() => {
+    const resetFilters = {
+      dateInicio: todayISO(),
+      dateFim: todayISO(),
+      status: "",
+      cliente: "",
+      transportadora: "",
+      motorista: "",
+      placa: "",
+      contrato: "",
+      page: 1,
+    };
+    setFilters(resetFilters);
+    setAppliedFilters(resetFilters);
+  }, []);
+
   // Memoizar os filtros para evitar recriação desnecessária
   const filterBarFilters = useMemo(() => [
     {
@@ -222,27 +247,9 @@ export default function HistoricoPage() {
         <Card className="bg-white">
           <FilterBar
             filters={filterBarFilters}
-            onFilterChange={useCallback((key: string, value: string) => {
-              setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
-            }, [])}
-            onFilterChangeRange={useCallback((key: string, valueInicio: string, valueFim: string) => {
-              setFilters((prev) => ({ ...prev, dateInicio: valueInicio, dateFim: valueFim, page: 1 }));
-            }, [])}
-            onReset={useCallback(() => {
-              const resetFilters = {
-                dateInicio: todayISO(),
-                dateFim: todayISO(),
-                status: "",
-                cliente: "",
-                transportadora: "",
-                motorista: "",
-                placa: "",
-                contrato: "",
-                page: 1,
-              };
-              setFilters(resetFilters);
-              setAppliedFilters(resetFilters);
-            }, [])}
+            onFilterChange={handleFilterChange}
+            onFilterChangeRange={handleFilterChangeRange}
+            onReset={handleReset}
             onApply={handleSearch}
             isLoading={loading}
           />

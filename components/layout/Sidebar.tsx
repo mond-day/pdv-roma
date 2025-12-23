@@ -11,9 +11,9 @@ const menuItems = [
   { href: "/pesagem", label: "Pesagem e Carregamentos", icon: "⚖️" },
   { href: "/historico", label: "Histórico", icon: "📜" },
   { href: "/relatorios", label: "Relatórios", icon: "📄" },
+  { href: "/auditoria", label: "Auditoria", icon: "🔍", adminOnly: true },
   { href: "/usuarios", label: "Usuários", icon: "👥", adminOnly: true },
   { href: "/configuracoes", label: "Configurações", icon: "⚙️", adminOnly: true },
-  { href: "/auditoria", label: "Auditoria", icon: "🔍", adminOnly: true },
 ];
 
 export function Sidebar() {
