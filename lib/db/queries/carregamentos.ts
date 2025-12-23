@@ -50,17 +50,8 @@ export async function listCarregamentos(params: {
     paramIndex++;
   }
 
-  if (params.transportadora) {
-    conditions.push(`(t.nome ILIKE $${paramIndex} OR c.transportadora_id::text ILIKE $${paramIndex})`);
-    values.push(`%${params.transportadora}%`);
-    paramIndex++;
-  }
-
-  if (params.motorista) {
-    conditions.push(`(m.nome ILIKE $${paramIndex} OR c.motorista_id::text ILIKE $${paramIndex})`);
-    values.push(`%${params.motorista}%`);
-    paramIndex++;
-  }
+  // Removido filtro de transportadora e motorista devido a incompatibilidade de tipos no schema
+  // transportadoras.id_gc é VARCHAR mas carregamentos.transportadora_id é INTEGER
 
   if (params.placa) {
     conditions.push(`c.placa ILIKE $${paramIndex}`);
@@ -78,12 +69,11 @@ export async function listCarregamentos(params: {
 
   // Sempre fazer JOIN com vendas para ter acesso aos dados do cliente e contrato
   // Usar id_gc para fazer o JOIN, já que venda_id pode não existir
+  // Removido JOINs de transportadoras e motoristas devido a incompatibilidade de tipos
   const countQuery = `
     SELECT COUNT(*)
     FROM carregamentos c
     LEFT JOIN vendas v ON v.id_gc = c.id_gc
-    LEFT JOIN transportadoras t ON t.id_gc = c.transportadora_id
-    LEFT JOIN motoristas m ON m.id = c.motorista_id
     ${whereClause}
   `;
   const dataQuery = `
@@ -103,13 +93,11 @@ export async function listCarregamentos(params: {
       END as liquido_kg,
       c.status,
       i.status as integracao_status,
-      t.nome as transportadora_nome,
-      m.nome as motorista_nome
+      NULL as transportadora_nome,
+      NULL as motorista_nome
     FROM carregamentos c
     LEFT JOIN vendas v ON v.id_gc = c.id_gc
     LEFT JOIN integracoes_n8n i ON i.carregamento_id = c.id
-    LEFT JOIN transportadoras t ON t.id_gc = c.transportadora_id
-    LEFT JOIN motoristas m ON m.id = c.motorista_id
     ${whereClause}
     ORDER BY c.data_carregamento DESC
     LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
