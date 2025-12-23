@@ -303,7 +303,7 @@ export default function ConfiguracoesPage() {
                                           // Forçar reload do componente Sidebar
                                           window.dispatchEvent(new Event("storage"));
 
-                                          alert("Logo salva com sucesso! Atualize a página para ver a logo no sidebar.");
+                                          alert("Logo salva com sucesso! A logo será atualizada automaticamente no sidebar.");
 
                                           // Limpar o input file
                                           e.target.value = "";

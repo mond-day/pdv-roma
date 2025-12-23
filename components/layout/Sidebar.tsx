@@ -22,6 +22,7 @@ export function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [lastLogoUpdate, setLastLogoUpdate] = useState<number>(0);
   const [user, setUser] = useState<{ name: string; email: string; role: string } | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -79,15 +80,19 @@ export function Sidebar() {
     const handleConfigUpdate = (event?: Event | CustomEvent) => {
       // Recarregar logo após atualização
       console.log("Evento configUpdated recebido, recarregando logo...");
-      
+
       // Se o evento contém a logo diretamente, usar ela
       if (event && 'detail' in event && (event as CustomEvent).detail?.logo) {
         const logoFromEvent = (event as CustomEvent).detail.logo;
         console.log("Logo recebida via evento:", logoFromEvent.substring(0, 50) + "...");
         setLogoUrl(logoFromEvent);
+        setLastLogoUpdate(Date.now()); // Marca timestamp da atualização manual
       } else {
-        // Caso contrário, recarregar da API
-        loadLogo();
+        // Caso contrário, recarregar da API (mas só se não houve atualização manual recente)
+        const timeSinceLastUpdate = Date.now() - lastLogoUpdate;
+        if (timeSinceLastUpdate > 15000) { // 15 segundos
+          loadLogo();
+        }
       }
     };
 
@@ -109,6 +114,7 @@ export function Sidebar() {
           if (logoFromStorage) {
             console.log("Logo encontrada no localStorage, usando...");
             setLogoUrl(logoFromStorage);
+            setLastLogoUpdate(Date.now()); // Marca timestamp
           } else {
             loadLogo();
           }
@@ -117,8 +123,13 @@ export function Sidebar() {
       }
     }, 300);
 
-    // Também verificar periodicamente (fallback)
-    const interval = setInterval(loadLogo, 5000);
+    // Também verificar periodicamente (fallback), mas não sobrescrever logos recém-atualizadas
+    const interval = setInterval(() => {
+      const timeSinceLastUpdate = Date.now() - lastLogoUpdate;
+      if (timeSinceLastUpdate > 15000) { // Só recarrega se passou mais de 15 segundos da última atualização manual
+        loadLogo();
+      }
+    }, 5000);
 
     return () => {
       window.removeEventListener("configUpdated", handleConfigUpdate);

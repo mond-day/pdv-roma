@@ -181,12 +181,12 @@ fi
 # Executar migrations
 info "Executando migrations..."
 MIGRATIONS=(
-    "001_create_users_table.sql"
-    "002_create_core_tables.sql"
+    "001_init.sql"
+    "002_logs_immutable.sql"
     "004_appsmith_schema_alignment.sql"
-    "005_add_qtd_eixos_to_vendas.sql"
-    "006_add_id_gc_columns.sql"
-    "007_add_missing_fields_transportadoras_motoristas.sql"
+    "005_fix_encoding_notificacoes.sql"
+    "006_fix_encoding_notificacoes_v2.sql"
+    "007_normalizar_status_carregamentos.sql"
 )
 
 for MIGRATION in "${MIGRATIONS[@]}"; do
