@@ -19,14 +19,14 @@ export async function createLog(data: {
 
   await pool.query(
     `
-    INSERT INTO logs_acao (acao, detalhes, carregamento_id, usuario_id)
+    INSERT INTO logs_acao (acao, detalhes, carregamento_id, user_id)
     VALUES ($1, $2::jsonb, $3, $4)
     `,
     [
       data.acao,
       detalhesJsonb,
       data.carregamento_id || null,
-      data.user_id || null, // usuario_id
+      data.user_id || null,
     ]
   );
 }
@@ -64,7 +64,7 @@ export async function listLogs(params: {
   }
 
   if (params.user_id) {
-    conditions.push(`usuario_id = $${paramIndex}`);
+    conditions.push(`user_id = $${paramIndex}`);
     values.push(params.user_id);
     paramIndex++;
   }
@@ -87,10 +87,10 @@ export async function listLogs(params: {
       l.request_id,
       l.carregamento_id,
       CASE 
-        WHEN l.usuario_id IS NOT NULL THEN
+        WHEN l.user_id IS NOT NULL THEN
           jsonb_build_object(
-            'id', u.id,
-            'name', u.nome,
+            'id', u.id::text,
+            'name', u.name,
             'email', u.email
           )
         ELSE
@@ -101,7 +101,7 @@ export async function listLogs(params: {
           )
       END as user
     FROM logs_acao l
-    LEFT JOIN usuarios u ON u.id = l.usuario_id
+    LEFT JOIN users u ON u.id = l.user_id
     ${whereClause}
     ORDER BY l.data DESC
     LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
@@ -135,12 +135,20 @@ export async function getLogsByCarregamento(carregamento_id: number) {
       l.acao,
       l.detalhes,
       l.request_id,
-      jsonb_build_object(
-        'id', u.id,
-        'name', u.nome
-      ) as user
+      CASE 
+        WHEN l.user_id IS NOT NULL THEN
+          jsonb_build_object(
+            'id', u.id::text,
+            'name', u.name
+          )
+        ELSE
+          jsonb_build_object(
+            'id', 'system',
+            'name', 'Sistema'
+          )
+      END as user
     FROM logs_acao l
-    JOIN usuarios u ON u.id = l.usuario_id
+    LEFT JOIN users u ON u.id = l.user_id
     WHERE l.carregamento_id = $1
     ORDER BY l.data DESC
     `,

@@ -31,7 +31,7 @@ export async function getRelatorio(params: {
     WHERE 
       CAST(c.data_carregamento AS DATE) >= CAST($1 AS DATE)
       AND CAST(c.data_carregamento AS DATE) <= CAST($2 AS DATE)
-      AND c.status = 'concluido'
+      AND c.status = 'finalizado'
     GROUP BY ${groupColumn}
     ORDER BY total_liquido_kg DESC
     `,

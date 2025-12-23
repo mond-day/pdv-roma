@@ -21,18 +21,19 @@ export async function listCarregamentos(params: {
   let paramIndex: number;
   
   // Se a data não foi fornecida, não filtrar por data (mostrar todos)
-  if (!params.date || params.date === "") {
+  if (!params.date) {
     conditions = [];
     values = [];
     paramIndex = 1; // LIMIT será $1, OFFSET será $2
-  } else if (params.dateFim && params.dateFim !== params.date) {
-    // Comparar apenas a data, ignorando a hora
-    conditions = ["CAST(c.data_carregamento AS DATE) >= CAST($1 AS DATE) AND CAST(c.data_carregamento AS DATE) <= CAST($2 AS DATE)"];
+  } else if (params.dateFim) {
+    // Quando dateFim é fornecido, sempre usar range (mesmo que seja igual a date)
+    // Como data_carregamento já é DATE, podemos comparar diretamente
+    conditions = ["c.data_carregamento >= $1::date AND c.data_carregamento <= $2::date"];
     values = [params.date, params.dateFim];
     paramIndex = 3; // LIMIT será $3, OFFSET será $4
   } else {
-    // Comparar apenas a data, ignorando a hora
-    conditions = ["CAST(c.data_carregamento AS DATE) = CAST($1 AS DATE)"];
+    // Comparar diretamente, já que data_carregamento é DATE
+    conditions = ["c.data_carregamento = $1::date"];
     values = [params.date];
     paramIndex = 2; // LIMIT será $2, OFFSET será $3
   }
@@ -76,10 +77,11 @@ export async function listCarregamentos(params: {
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
   // Sempre fazer JOIN com vendas para ter acesso aos dados do cliente e contrato
+  // Usar id_gc para fazer o JOIN, já que venda_id pode não existir
   const countQuery = `
     SELECT COUNT(*) 
     FROM carregamentos c
-    LEFT JOIN vendas v ON v.id_gc = c.venda_id
+    LEFT JOIN vendas v ON v.id_gc = c.id_gc
     ${whereClause}
   `;
   const dataQuery = `
@@ -89,12 +91,10 @@ export async function listCarregamentos(params: {
       c.placa,
       COALESCE(v.nome_cliente, c.cliente_nome, '') as cliente_nome,
       COALESCE(v.codigo, c.contrato_codigo, '') as contrato_codigo,
-      COALESCE(c.detalhes_produto, c.produto_nome, '') as produto_nome,
+      COALESCE(c.produto_nome, '') as produto_nome,
       CASE 
         WHEN c.bruto_kg IS NOT NULL AND c.tara_kg IS NOT NULL 
         THEN (c.bruto_kg - c.tara_kg)
-        WHEN c.peso_final_total IS NOT NULL AND c.tara_total IS NOT NULL 
-        THEN CAST((c.peso_final_total - c.tara_total) * 1000 AS INTEGER)
         WHEN c.liquido_kg IS NOT NULL
         THEN c.liquido_kg
         ELSE NULL
@@ -102,25 +102,33 @@ export async function listCarregamentos(params: {
       c.status,
       i.status as integracao_status
     FROM carregamentos c
-    LEFT JOIN vendas v ON v.id_gc = c.venda_id
+    LEFT JOIN vendas v ON v.id_gc = c.id_gc
     LEFT JOIN integracoes_n8n i ON i.carregamento_id = c.id
     ${whereClause}
     ORDER BY c.data_carregamento DESC
     LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
   `;
 
+  // Preparar valores para a query (incluindo LIMIT e OFFSET)
+  const queryValues = [...values, params.pageSize, offset];
+
   try {
     console.log("listCarregamentos - Params:", { date: params.date, dateFim: params.dateFim, page: params.page, pageSize: params.pageSize });
-    console.log("listCarregamentos - Query:", countQuery);
-    console.log("listCarregamentos - Values:", values);
+    console.log("listCarregamentos - Count Query:", countQuery);
+    console.log("listCarregamentos - Data Query:", dataQuery);
+    console.log("listCarregamentos - Count Values:", values);
+    console.log("listCarregamentos - Data Values:", queryValues);
     
     const [countResult, dataResult] = await Promise.all([
       pool.query(countQuery, values),
-      pool.query(dataQuery, [...values, params.pageSize, offset]),
+      pool.query(dataQuery, queryValues),
     ]);
 
     console.log("listCarregamentos - Count result:", countResult.rows[0]?.count);
     console.log("listCarregamentos - Data result rows:", dataResult.rows.length);
+    if (dataResult.rows.length === 0) {
+      console.log("listCarregamentos - Nenhum resultado encontrado para os filtros aplicados");
+    }
     if (dataResult.rows.length > 0) {
       console.log("listCarregamentos - Primeira linha:", JSON.stringify(dataResult.rows[0], null, 2));
     }
@@ -134,7 +142,7 @@ export async function listCarregamentos(params: {
         contrato_codigo: row.contrato_codigo || '',
         produto_nome: row.produto_nome || '',
         liquido_kg: row.liquido_kg ? parseInt(String(row.liquido_kg), 10) : null,
-        status: row.status || 'pendente',
+        status: row.status || 'standby',
         integracao_status: row.integracao_status || null,
       };
       return item;
@@ -251,11 +259,11 @@ export async function finalizarCarregamento(
       `
       UPDATE carregamentos
       SET 
-        status = 'concluido',
+        status = 'finalizado',
         peso_final_total = $1,
         peso_final_eixos = $2,
         finalizado_em = NOW()
-      WHERE id = $3 AND status = 'stand-by'
+      WHERE id = $3 AND status = 'standby'
       `,
       [
         pesoFinalTotalTon,
@@ -283,7 +291,7 @@ export async function finalizarCarregamento(
     );
 
     return {
-      status: "concluido" as const,
+      status: "finalizado" as const,
       integracao_status: (integResult.rows[0]?.status || "pendente") as "pendente" | "enviado" | "erro",
     };
   } catch (error) {
@@ -324,7 +332,7 @@ export async function createCarregamento(data: {
       motorista_id,
       status,
       data_carregamento
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'stand-by', CURRENT_TIMESTAMP)
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'standby', CURRENT_TIMESTAMP)
     RETURNING id, status, placa
     `,
     [
@@ -360,7 +368,7 @@ export async function cancelarCarregamento(
       cancelado_em = NOW(),
       cancelamento_motivo = $1,
       updated_at = NOW()
-      WHERE id = $2 AND status IN ('stand-by', 'concluido')
+      WHERE id = $2 AND status IN ('standby', 'finalizado')
     RETURNING id, status
     `,
     [motivo, id]

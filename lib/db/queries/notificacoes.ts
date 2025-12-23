@@ -81,8 +81,9 @@ export async function listNotificacoes(params: {
     items: dataResult.rows.map((row) => ({
       id: row.id,
       created_at: row.created_at,
-      titulo: row.titulo,
-      mensagem: row.mensagem,
+      // Garantir que os textos sejam strings UTF-8 válidas
+      titulo: String(row.titulo || ''),
+      mensagem: String(row.mensagem || ''),
       tipo: row.tipo,
       carregamento_id: row.carregamento_id,
       lida: row.lida,

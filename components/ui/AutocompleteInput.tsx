@@ -68,7 +68,9 @@ function AutocompleteInputComponent({
     if (!onSearch || !isMountedRef.current) return [];
     
     try {
+      console.log("AutocompleteInput - Buscando:", query);
       const results = await onSearch(query);
+      console.log("AutocompleteInput - Resultados recebidos:", results);
       // Verificar se ainda está montado e a query ainda é válida
       if (isMountedRef.current && currentQueryRef.current === query) {
         return results;
@@ -135,7 +137,7 @@ function AutocompleteInputComponent({
         return {
           suggestions: previousSuggestionsRef.current, // Manter sugestões anteriores
           isLoading: true,
-          shouldShow: prev.shouldShow || hasPreviousSuggestions,
+          shouldShow: true, // Sempre mostrar se há sugestões anteriores ou está carregando
         };
       }
       return prev;
@@ -157,6 +159,7 @@ function AutocompleteInputComponent({
 
       // Atualizar tudo de uma vez - estado atômico
       previousSuggestionsRef.current = results;
+      console.log("AutocompleteInput - Atualizando estado com resultados:", results);
       setDropdownState((prev) => {
         // Só atualizar se realmente mudou
         if (
@@ -167,11 +170,13 @@ function AutocompleteInputComponent({
         ) {
           return prev;
         }
-        return {
+        const newState = {
           suggestions: results,
           isLoading: false,
-          shouldShow: results.length > 0,
+          shouldShow: results.length > 0, // Mostrar se há resultados
         };
+        console.log("AutocompleteInput - Novo estado:", newState);
+        return newState;
       });
     }, debounceMs);
 
@@ -207,17 +212,21 @@ function AutocompleteInputComponent({
   }, []);
 
   const handleFocus = useCallback(() => {
-    // Mostrar sugestões ao focar se houver resultados
-    if (dropdownState.suggestions.length > 0) {
+    // Mostrar sugestões ao focar se houver resultados ou se está carregando
+    if (dropdownState.suggestions.length > 0 || dropdownState.isLoading) {
       setDropdownState((prev) => ({ ...prev, shouldShow: true }));
     }
-  }, [dropdownState.suggestions.length]);
+  }, [dropdownState.suggestions.length, dropdownState.isLoading]);
 
   // Determinar o que mostrar - memoizado para evitar recálculos
   const { showLoading, showResults, dropdownKey } = useMemo(() => {
+    // Mostrar loading apenas quando não há sugestões anteriores e está carregando
     const loading = dropdownState.isLoading && dropdownState.suggestions.length === 0;
+    // Mostrar resultados se há sugestões e o dropdown deve ser mostrado
+    // OU se está carregando mas já tem sugestões anteriores (mostrar enquanto busca novas)
     const results = dropdownState.shouldShow && dropdownState.suggestions.length > 0;
-    const key = `dropdown-${dropdownState.suggestions.length}-${results}`;
+    const key = `dropdown-${dropdownState.suggestions.length}-${results}-${dropdownState.shouldShow}`;
+    console.log("AutocompleteInput - showResults:", results, "suggestions:", dropdownState.suggestions.length, "shouldShow:", dropdownState.shouldShow);
     return { showLoading: loading, showResults: results, dropdownKey: key };
   }, [dropdownState.isLoading, dropdownState.suggestions.length, dropdownState.shouldShow]);
 
@@ -243,18 +252,8 @@ function AutocompleteInputComponent({
         {...props}
       />
       
-      {/* Loading - apenas quando não há resultados sendo exibidos */}
-      {showLoading && (
-        <div 
-          key="loading"
-          className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg"
-        >
-          <div className="p-3 text-center text-gray-500 text-sm">Buscando...</div>
-        </div>
-      )}
-      
-      {/* Results - renderização estável com key para evitar re-render */}
-      {showResults && (
+      {/* Results - mostrar sempre que houver sugestões ou estiver carregando */}
+      {(showResults || (showLoading && dropdownState.suggestions.length > 0)) && (
         <div 
           key={dropdownKey}
           className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-auto"
@@ -268,6 +267,20 @@ function AutocompleteInputComponent({
               {suggestion}
             </div>
           ))}
+          {/* Mostrar indicador de loading apenas se estiver carregando e não houver sugestões ainda */}
+          {showLoading && dropdownState.suggestions.length === 0 && (
+            <div className="p-3 text-center text-gray-500 text-sm">Buscando...</div>
+          )}
+        </div>
+      )}
+      
+      {/* Loading - apenas quando não há resultados sendo exibidos */}
+      {showLoading && dropdownState.suggestions.length === 0 && (
+        <div 
+          key="loading"
+          className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg"
+        >
+          <div className="p-3 text-center text-gray-500 text-sm">Buscando...</div>
         </div>
       )}
       
@@ -289,3 +302,4 @@ export const AutocompleteInput = memo(AutocompleteInputComponent, (prevProps, ne
     prevProps.className === nextProps.className
   );
 });
+

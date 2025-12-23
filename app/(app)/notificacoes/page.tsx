@@ -7,26 +7,62 @@ import { Badge } from "@/components/ui/Badge";
 
 export default function NotificacoesPage() {
   const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const fetchNotifications = () => {
+    setLoading(true);
     fetch("/api/notificacoes?status=abertas")
       .then((res) => res.json())
       .then((data) => {
         if (data.ok) {
           setData(data);
         }
+      })
+      .catch((error) => {
+        console.error("Erro ao buscar notificações:", error);
+      })
+      .finally(() => {
+        setLoading(false);
       });
+  };
+
+  useEffect(() => {
+    fetchNotifications();
   }, []);
 
   const handleMarcarLida = async (id: string) => {
-    await fetch(`/api/notificacoes/${id}/lida`, { method: "POST" });
-    window.location.reload();
+    // Atualização otimista da UI
+    setData((prev: any) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        items: prev.items.map((item: any) =>
+          item.id === id ? { ...item, lida: true } : item
+        ),
+        total: Math.max(0, prev.total - 1),
+      };
+    });
+
+    try {
+      const res = await fetch(`/api/notificacoes/${id}/lida`, { method: "POST" });
+      if (!res.ok) {
+        throw new Error("Erro ao marcar notificação como lida");
+      }
+      // Recarregar dados para garantir sincronização
+      fetchNotifications();
+    } catch (error) {
+      console.error("Erro ao marcar notificação como lida:", error);
+      // Reverter atualização otimista em caso de erro
+      fetchNotifications();
+    }
   };
 
-  if (!data) {
+  if (loading || !data) {
     return (
       <AppShell>
-        <div>Carregando...</div>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-gray-500">Carregando...</div>
+        </div>
       </AppShell>
     );
   }

@@ -34,8 +34,8 @@ export async function POST(
       return notFoundResponse("Carregamento não encontrado");
     }
 
-    if (carregamento.status !== "stand-by" && carregamento.status !== "standby") {
-      return errorResponse("Carregamento não está em stand-by", 400);
+    if (carregamento.status !== "standby") {
+      return errorResponse("Carregamento não está em standby", 400);
     }
 
     const body = await request.json();

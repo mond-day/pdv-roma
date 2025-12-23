@@ -24,11 +24,21 @@ export default function CarregamentoDetailPage() {
 
   useEffect(() => {
     fetch(`/api/carregamentos/${params.id}`)
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`Erro HTTP: ${res.status}`);
+        }
+        return res.json();
+      })
       .then((data) => {
         if (data.ok) {
           setData(data.item);
+        } else {
+          console.error("Erro ao carregar carregamento:", data);
         }
+      })
+      .catch((error) => {
+        console.error("Erro ao buscar carregamento:", error);
       });
   }, [params.id]);
 
@@ -95,7 +105,9 @@ export default function CarregamentoDetailPage() {
   if (!data) {
     return (
       <AppShell>
-        <div>Carregando...</div>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-gray-500">Carregando carregamento...</div>
+        </div>
       </AppShell>
     );
   }

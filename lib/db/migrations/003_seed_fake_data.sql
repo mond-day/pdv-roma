@@ -146,7 +146,7 @@ BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'notificacoes') THEN
     INSERT INTO notificacoes (user_id, tipo, titulo, mensagem, carregamento_id, lida)
     SELECT 
-      (SELECT id FROM usuarios LIMIT 1),
+      (SELECT id FROM users LIMIT 1),
       CASE WHEN i.status = 'erro' THEN 'aviso' ELSE 'integracao' END,
       CASE 
         WHEN i.status = 'erro' THEN 'Erro na integração n8n'
@@ -192,8 +192,8 @@ INSERT INTO carregamentos (
   ('GC-015', 'FGG-5555', 'Cliente O Ltda', 'CT-015', 3, 'cancelado', CURRENT_DATE - INTERVAL '7 days', 25.200, '[8400, 8300, 8500]'::jsonb, NULL, NULL, NULL, '21.0', 'Cancelado há 7 dias', 'Milho', 'TRANS-001', 1);
 
 -- Logs fake (auditoria)
--- Nota: logs_acao usa usuario_id (não user_id) e detalhes é JSONB
-INSERT INTO logs_acao (acao, detalhes, carregamento_id, usuario_id, data)
+-- Nota: logs_acao usa user_id (não usuario_id) e detalhes é JSONB
+INSERT INTO logs_acao (acao, detalhes, carregamento_id, user_id, data)
 SELECT 
   CASE 
     WHEN c.status = 'standby' THEN 'criar_carregamento_espera'
@@ -206,14 +206,14 @@ SELECT
     'status', c.status
   ),
   c.id,
-  (SELECT id FROM usuarios LIMIT 1),
+  (SELECT id FROM users LIMIT 1),
   c.data_carregamento
 FROM carregamentos c
 ORDER BY c.id
 LIMIT 15;
 
 -- Mais logs de auditoria (ações de usuário)
-INSERT INTO logs_acao (acao, detalhes, usuario_id, data)
+INSERT INTO logs_acao (acao, detalhes, user_id, data)
 SELECT 
   CASE (row_num % 4)
     WHEN 0 THEN 'alterar_usuario_permissao'
@@ -230,7 +230,7 @@ SELECT
     END,
     'row_num', row_num
   ),
-  (SELECT id FROM usuarios LIMIT 1),
+  (SELECT id FROM users LIMIT 1),
   CURRENT_TIMESTAMP - (row_num || ' hours')::INTERVAL
 FROM (
   SELECT generate_series(1, 10) as row_num
@@ -242,7 +242,7 @@ BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'notificacoes') THEN
     INSERT INTO notificacoes (user_id, tipo, titulo, mensagem, carregamento_id, lida, created_at)
     SELECT 
-      (SELECT id FROM usuarios LIMIT 1),
+      (SELECT id FROM users LIMIT 1),
       'aviso',
       'Carregamento ' || c.id || ' aguardando ação',
       'O carregamento ' || c.id || ' (' || c.placa || ') está em stand-by há mais de 24 horas',

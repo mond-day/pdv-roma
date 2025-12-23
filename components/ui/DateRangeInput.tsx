@@ -26,7 +26,24 @@ export function DateRangeInput({
   const [isOpen, setIsOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const calendarRef = useRef<HTMLDivElement>(null);
+  const inicioInputRef = useRef<HTMLInputElement>(null);
+  const fimInputRef = useRef<HTMLInputElement>(null);
   const [activeField, setActiveField] = useState<"inicio" | "fim">("inicio");
+  const [calendarPosition, setCalendarPosition] = useState({ left: 0 });
+
+  // Calcular posição do calendário quando isOpen mudar
+  useEffect(() => {
+    if (isOpen) {
+      const inputRef = activeField === "inicio" ? inicioInputRef.current : fimInputRef.current;
+      const containerRef = calendarRef.current?.parentElement;
+      if (inputRef && containerRef) {
+        const inputRect = inputRef.getBoundingClientRect();
+        const containerRect = containerRef.getBoundingClientRect();
+        const left = inputRect.left - containerRect.left;
+        setCalendarPosition({ left });
+      }
+    }
+  }, [isOpen, activeField]);
 
   // Converter ISO para DD/MM/AAAA
   const formatToDisplay = (isoDate: string): string => {
@@ -199,7 +216,7 @@ export function DateRangeInput({
   ];
 
   return (
-    <div className={`w-full relative z-0 ${className}`} ref={calendarRef}>
+    <div className={`w-full relative ${className}`} ref={calendarRef} style={{ zIndex: isOpen ? 50 : 'auto' }}>
       {label && (
         <label className="block text-sm font-semibold text-gray-900 mb-1.5">
           {label}
@@ -209,12 +226,13 @@ export function DateRangeInput({
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-500 whitespace-nowrap">De</span>
           <input
+            ref={inicioInputRef}
             type="text"
             value={displayInicio}
             onChange={(e) => handleDisplayChange(e, "inicio")}
             onFocus={() => handleInputFocus("inicio")}
             placeholder="DD/MM/AAAA"
-            className={`flex-1 px-3 py-2 bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-400 ${
+            className={`w-[110px] px-3 py-2 bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-400 ${
               error ? "border-red-500 focus:ring-red-500" : "border-gray-300"
             }`}
           />
@@ -222,12 +240,13 @@ export function DateRangeInput({
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-500 whitespace-nowrap">Até</span>
           <input
+            ref={fimInputRef}
             type="text"
             value={displayFim}
             onChange={(e) => handleDisplayChange(e, "fim")}
             onFocus={() => handleInputFocus("fim")}
             placeholder="DD/MM/AAAA"
-            className={`flex-1 px-3 py-2 bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-400 ${
+            className={`w-[110px] px-3 py-2 bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-400 ${
               error ? "border-red-500 focus:ring-red-500" : "border-gray-300"
             }`}
           />
@@ -235,7 +254,7 @@ export function DateRangeInput({
       </div>
       
       {isOpen && (
-        <div className="absolute z-50 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-4 w-64" style={{ left: activeField === "fim" ? "100%" : "0", marginLeft: activeField === "fim" ? "8px" : "0" }}>
+        <div className="absolute z-[100] top-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-4 w-64" style={{ left: `${calendarPosition.left}px` }}>
           <div className="mb-2 text-xs text-gray-600">
             Selecione {activeField === "inicio" ? "data inicial" : "data final"}
           </div>

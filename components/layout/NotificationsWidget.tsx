@@ -47,17 +47,63 @@ export function NotificationsWidget() {
     };
   }, [isOpen]);
 
-  const handleMarcarLida = async (id: string) => {
-    await fetch(`/api/notificacoes/${id}/lida`, { method: "POST" });
-    // Atualizar lista
-    fetch("/api/notificacoes?status=abertas&pageSize=10")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.ok) {
-          setNotifications(data.items);
-          setCount(data.total);
-        }
-      });
+  const handleMarcarLida = async (id: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation(); // Prevenir navegação ao clicar no botão
+    }
+    
+    // Atualização otimista da UI
+    setNotifications((prev) =>
+      prev.map((notif) =>
+        notif.id === id ? { ...notif, lida: true } : notif
+      )
+    );
+    setCount((prev) => Math.max(0, prev - 1));
+
+    try {
+      await fetch(`/api/notificacoes/${id}/lida`, { method: "POST" });
+      // Atualizar lista para garantir sincronização
+      fetch("/api/notificacoes?status=abertas&pageSize=10")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.ok) {
+            setNotifications(data.items);
+            setCount(data.total);
+          }
+        })
+        .catch(() => {
+          // Em caso de erro, reverter a atualização otimista
+          fetch("/api/notificacoes?status=abertas&pageSize=10")
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.ok) {
+                setNotifications(data.items);
+                setCount(data.total);
+              }
+            });
+        });
+    } catch (error) {
+      // Em caso de erro, reverter a atualização otimista
+      fetch("/api/notificacoes?status=abertas&pageSize=10")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.ok) {
+            setNotifications(data.items);
+            setCount(data.total);
+          }
+        });
+    }
+  };
+
+  const handleNotificationClick = (item: any) => {
+    setIsOpen(false);
+    // Se tiver carregamento_id, navegar para o carregamento
+    if (item.carregamento_id) {
+      router.push(`/carregamentos/${item.carregamento_id}`);
+    } else {
+      // Caso contrário, navegar para auditoria
+      router.push("/auditoria");
+    }
   };
 
   const getTipoBadge = (tipo: string) => {
@@ -109,9 +155,10 @@ export function NotificationsWidget() {
                 {notifications.map((item) => (
                   <div
                     key={item.id}
-                    className={`px-4 py-3 hover:bg-gray-50 transition-colors ${
+                    className={`px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer ${
                       !item.lida ? "bg-blue-50" : ""
                     }`}
+                    onClick={() => handleNotificationClick(item)}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
@@ -126,8 +173,9 @@ export function NotificationsWidget() {
                       </div>
                       {!item.lida && (
                         <button
-                          onClick={() => handleMarcarLida(item.id)}
-                          className="ml-2 text-xs text-blue-600 hover:text-blue-800"
+                          onClick={(e) => handleMarcarLida(item.id, e)}
+                          className="ml-2 text-xs text-blue-600 hover:text-blue-800 px-2 py-1 rounded hover:bg-blue-100"
+                          title="Marcar como lida"
                         >
                           ✓
                         </button>

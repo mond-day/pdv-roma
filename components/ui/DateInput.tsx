@@ -148,7 +148,7 @@ export function DateInput({ label, value, onChange, error, className = "" }: Dat
   ];
 
   return (
-    <div className={`w-full relative ${className}`} ref={calendarRef}>
+    <div className={`w-full relative ${className}`} ref={calendarRef} style={{ zIndex: isOpen ? 50 : 'auto' }}>
       {label && (
         <label className="block text-sm font-semibold text-gray-900 mb-1.5">
           {label}
@@ -175,7 +175,7 @@ export function DateInput({ label, value, onChange, error, className = "" }: Dat
       </div>
       
       {isOpen && (
-        <div className="absolute z-50 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-4 w-64">
+        <div className="absolute z-[100] mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-4 w-64">
           <div className="flex items-center justify-between mb-4">
             <button
               type="button"

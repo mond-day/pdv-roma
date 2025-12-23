@@ -46,14 +46,36 @@ export default function HistoricoPage() {
       ...(appliedFilters.contrato && { contrato: appliedFilters.contrato }),
     });
 
+    console.log("HistoricoPage - Fetching with params:", params.toString());
     fetch(`/api/historico?${params}`)
-      .then((res) => res.json())
+      .then(async (res) => {
+        console.log("HistoricoPage - Response status:", res.status);
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error("HistoricoPage - Response not ok:", res.status, errorText);
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return res.json();
+      })
       .then((data) => {
+        console.log("HistoricoPage - Response:", data);
         if (data.ok) {
           setData(data);
+        } else {
+          console.error("HistoricoPage - Response not ok:", data);
+          // Mesmo se não estiver ok, definir data vazia para não ficar em loading
+          setData({ ok: true, items: [], total: 0, page: 1, pageSize: 50 });
         }
       })
-      .finally(() => setLoading(false));
+      .catch((error) => {
+        console.error("HistoricoPage - Fetch error:", error);
+        // Em caso de erro, definir data vazia para não ficar em loading
+        setData({ ok: true, items: [], total: 0, page: 1, pageSize: 50 });
+      })
+      .finally(() => {
+        setLoading(false);
+        console.log("HistoricoPage - Loading set to false");
+      });
   }, [appliedFilters]);
 
   useEffect(() => {
@@ -76,9 +98,10 @@ export default function HistoricoPage() {
 
 
   // Funções de autocomplete - memoizadas para evitar re-renders
+  // Não usar filtro de data para buscar em todo o histórico
   const searchClientes = useCallback(async (query: string): Promise<string[]> => {
     try {
-      const res = await fetch(`/api/historico?date=${todayISO()}&cliente=${encodeURIComponent(query)}&pageSize=10`);
+      const res = await fetch(`/api/historico?cliente=${encodeURIComponent(query)}&pageSize=50`);
       const data = await res.json();
       if (data.ok && data.items) {
         const clientes: string[] = [...new Set(data.items.map((item: any) => item.cliente_nome).filter(Boolean))] as string[];
@@ -92,7 +115,7 @@ export default function HistoricoPage() {
 
   const searchPlacas = useCallback(async (query: string): Promise<string[]> => {
     try {
-      const res = await fetch(`/api/historico?date=${todayISO()}&placa=${encodeURIComponent(query)}&pageSize=10`);
+      const res = await fetch(`/api/historico?placa=${encodeURIComponent(query)}&pageSize=50`);
       const data = await res.json();
       if (data.ok && data.items) {
         const placas: string[] = [...new Set(data.items.map((item: any) => item.placa).filter(Boolean))] as string[];
@@ -106,7 +129,7 @@ export default function HistoricoPage() {
 
   const searchTransportadoras = useCallback(async (query: string): Promise<string[]> => {
     try {
-      const res = await fetch(`/api/historico?date=${todayISO()}&transportadora=${encodeURIComponent(query)}&pageSize=10`);
+      const res = await fetch(`/api/historico?transportadora=${encodeURIComponent(query)}&pageSize=50`);
       const data = await res.json();
       if (data.ok && data.items) {
         return [...new Set(data.items.map((item: any) => item.transportadora_nome || "").filter(Boolean))].slice(0, 10) as string[];
@@ -119,7 +142,7 @@ export default function HistoricoPage() {
 
   const searchMotoristas = useCallback(async (query: string): Promise<string[]> => {
     try {
-      const res = await fetch(`/api/historico?date=${todayISO()}&motorista=${encodeURIComponent(query)}&pageSize=10`);
+      const res = await fetch(`/api/historico?motorista=${encodeURIComponent(query)}&pageSize=50`);
       const data = await res.json();
       if (data.ok && data.items) {
         return [...new Set(data.items.map((item: any) => item.motorista_nome || "").filter(Boolean))].slice(0, 10) as string[];
@@ -290,14 +313,20 @@ export default function HistoricoPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {data?.items.length === 0 ? (
+                {loading ? (
+                  <tr>
+                    <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                      Carregando...
+                    </td>
+                  </tr>
+                ) : !data || !data.items || data.items.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
                       Nenhum carregamento encontrado com os filtros aplicados
                     </td>
                   </tr>
                 ) : (
-                  data?.items.map((item: any) => {
+                  data.items.map((item: any) => {
                     // Normalizar status para comparação
                     const statusNormalizado = (item.status || "").toLowerCase().trim();
                     const podeCancelar = (statusNormalizado === "stand-by" || statusNormalizado === "standby" || statusNormalizado === "finalizado") && statusNormalizado !== "cancelado";
@@ -480,7 +509,19 @@ export default function HistoricoPage() {
                 <div>
                   <span className="text-sm font-medium text-gray-700">Data:</span>
                   <p className="text-base font-semibold text-gray-900">
-                    {new Date(selectedCarregamento.data_carregamento).toLocaleDateString("pt-BR")}
+                    {selectedCarregamento.data_carregamento 
+                      ? (() => {
+                          try {
+                            const date = new Date(selectedCarregamento.data_carregamento);
+                            if (isNaN(date.getTime())) {
+                              return selectedCarregamento.data_carregamento;
+                            }
+                            return date.toLocaleDateString("pt-BR");
+                          } catch {
+                            return selectedCarregamento.data_carregamento;
+                          }
+                        })()
+                      : "-"}
                   </p>
                 </div>
               </div>
