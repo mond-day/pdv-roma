@@ -112,17 +112,17 @@ INSERT INTO carregamentos (
   observacoes,
   detalhes_produto
 ) VALUES
-  ('GC-001', 'ABC-1234', 'Cliente A Ltda', 'CT-001', 3, 'standby', CURRENT_DATE, 25.000, '[8500, 8200, 8300]'::jsonb, NULL, NULL, NULL, '25.5', 'Carregamento em espera', 'Soja'),
-  ('GC-002', 'XYZ-5678', 'Cliente B S.A', 'CT-002', 4, 'finalizado', CURRENT_DATE, 36.300, '[9200, 9000, 9100, 9000]'::jsonb, 49.200, '[12500, 12300, 12400, 12200]'::jsonb, CURRENT_DATE, '30.0', 'Carregamento finalizado', 'Milho'),
-  ('GC-003', 'DEF-9012', 'Cliente C EIRELI', 'CT-003', 2, 'standby', CURRENT_DATE, 15.800, '[7800, 8000]'::jsonb, NULL, NULL, NULL, '20.0', 'Aguardando pesagem final', 'Trigo'),
-  ('GC-005', 'JKL-7890', 'Cliente E Ltda', 'CT-005', 3, 'cancelado', CURRENT_DATE, 26.400, '[8800, 8700, 8900]'::jsonb, NULL, NULL, NULL, '22.5', 'Cancelado por motivo X', 'Milho'),
-  ('GC-006', 'MNO-2468', 'Cliente F S.A', 'CT-006', 4, 'standby', CURRENT_DATE, 38.000, '[9500, 9400, 9600, 9500]'::jsonb, NULL, NULL, NULL, '28.0', 'Em processo', 'Trigo'),
-  ('GC-007', 'PQR-1357', 'Cliente G EIRELI', 'CT-007', 5, 'finalizado', CURRENT_DATE, 54.500, '[11000, 10800, 10900, 11000, 10800]'::jsonb, 74.500, '[15000, 14800, 14900, 15000, 14800]'::jsonb, CURRENT_DATE, '40.0', 'Carregamento completo', 'Soja'),
-  ('GC-009', 'VWX-8642', 'Cliente I Ltda', 'CT-009', 4, 'finalizado', CURRENT_DATE, 39.200, '[9800, 9700, 9900, 9800]'::jsonb, 54.000, '[13500, 13400, 13600, 13500]'::jsonb, CURRENT_DATE, '32.0', 'Finalizado hoje', 'Trigo'),
-  ('GC-010', 'YZA-7531', 'Cliente J S.A', 'CT-010', 3, 'standby', CURRENT_DATE, 27.000, '[9000, 8900, 9100]'::jsonb, NULL, NULL, NULL, '27.5', 'Em standby', 'Soja'),
+  ('GC-001', 'ABC-1234', 'Cliente A Ltda', 'CT-001', 3, 'stand-by', CURRENT_TIMESTAMP, 25.000, '[8500, 8200, 8300]'::jsonb, NULL, NULL, NULL, '25.5', 'Carregamento em espera', 'Soja'),
+  ('GC-002', 'XYZ-5678', 'Cliente B S.A', 'CT-002', 4, 'concluido', CURRENT_TIMESTAMP, 36.300, '[9200, 9000, 9100, 9000]'::jsonb, 49.200, '[12500, 12300, 12400, 12200]'::jsonb, CURRENT_TIMESTAMP, '30.0', 'Carregamento finalizado', 'Milho'),
+  ('GC-003', 'DEF-9012', 'Cliente C EIRELI', 'CT-003', 2, 'stand-by', CURRENT_TIMESTAMP, 15.800, '[7800, 8000]'::jsonb, NULL, NULL, NULL, '20.0', 'Aguardando pesagem final', 'Trigo'),
+  ('GC-005', 'JKL-7890', 'Cliente E Ltda', 'CT-005', 3, 'cancelado', CURRENT_TIMESTAMP, 26.400, '[8800, 8700, 8900]'::jsonb, NULL, NULL, NULL, '22.5', 'Cancelado por motivo X', 'Milho'),
+  ('GC-006', 'MNO-2468', 'Cliente F S.A', 'CT-006', 4, 'stand-by', CURRENT_TIMESTAMP, 38.000, '[9500, 9400, 9600, 9500]'::jsonb, NULL, NULL, NULL, '28.0', 'Em processo', 'Trigo'),
+  ('GC-007', 'PQR-1357', 'Cliente G EIRELI', 'CT-007', 5, 'concluido', CURRENT_TIMESTAMP, 54.500, '[11000, 10800, 10900, 11000, 10800]'::jsonb, 74.500, '[15000, 14800, 14900, 15000, 14800]'::jsonb, CURRENT_TIMESTAMP, '40.0', 'Carregamento completo', 'Soja'),
+  ('GC-009', 'VWX-8642', 'Cliente I Ltda', 'CT-009', 4, 'concluido', CURRENT_TIMESTAMP, 39.200, '[9800, 9700, 9900, 9800]'::jsonb, 54.000, '[13500, 13400, 13600, 13500]'::jsonb, CURRENT_TIMESTAMP, '32.0', 'Finalizado hoje', 'Trigo'),
+  ('GC-010', 'YZA-7531', 'Cliente J S.A', 'CT-010', 3, 'stand-by', CURRENT_TIMESTAMP, 27.000, '[9000, 8900, 9100]'::jsonb, NULL, NULL, NULL, '27.5', 'Em standby', 'Soja'),
   -- Carregamentos de outros dias (para histórico)
-  ('GC-004', 'GHI-3456', 'Cliente D ME', 'CT-004', 5, 'finalizado', CURRENT_DATE - INTERVAL '1 day', 50.500, '[10000, 9800, 9900, 10000, 9800]'::jsonb, 70.500, '[14000, 13800, 13900, 14000, 13800]'::jsonb, CURRENT_DATE - INTERVAL '1 day', '35.0', 'Finalizado ontem', 'Soja'),
-  ('GC-008', 'STU-9753', 'Cliente H ME', 'CT-008', 2, 'standby', CURRENT_DATE - INTERVAL '2 days', 15.200, '[7500, 7700]'::jsonb, NULL, NULL, NULL, '18.0', 'Aguardando desde anteontem', 'Milho');
+  ('GC-004', 'GHI-3456', 'Cliente D ME', 'CT-004', 5, 'concluido', CURRENT_TIMESTAMP - INTERVAL '1 day', 50.500, '[10000, 9800, 9900, 10000, 9800]'::jsonb, 70.500, '[14000, 13800, 13900, 14000, 13800]'::jsonb, CURRENT_TIMESTAMP - INTERVAL '1 day', '35.0', 'Finalizado ontem', 'Soja'),
+  ('GC-008', 'STU-9753', 'Cliente H ME', 'CT-008', 2, 'stand-by', CURRENT_TIMESTAMP - INTERVAL '2 days', 15.200, '[7500, 7700]'::jsonb, NULL, NULL, NULL, '18.0', 'Aguardando desde anteontem', 'Milho');
 
 -- Integrações fake (algumas pendentes, algumas com erro)
 -- Nota: Verificando se a tabela integracoes_n8n existe
@@ -146,7 +146,7 @@ BEGIN
         'status', c.status
       )
     FROM carregamentos c
-    WHERE c.status = 'finalizado'
+    WHERE c.status = 'concluido'
     LIMIT 5;
   END IF;
 END $$;
@@ -197,19 +197,19 @@ INSERT INTO carregamentos (
   transportadora_id,
   motorista_id
 ) VALUES
-  ('GC-011', 'BCC-1111', 'Cliente K Ltda', 'CT-011', 4, 'standby', CURRENT_DATE - INTERVAL '3 days', 36.800, '[9200, 9100, 9300, 9200]'::jsonb, NULL, NULL, NULL, '28.0', 'Aguardando há 3 dias', 'Soja', 'TRANS-001', 1),
-  ('GC-012', 'CDD-2222', 'Cliente L S.A', 'CT-012', 3, 'finalizado', CURRENT_DATE - INTERVAL '4 days', 25.800, '[8600, 8500, 8700]'::jsonb, 36.000, '[12000, 11900, 12100]'::jsonb, CURRENT_DATE - INTERVAL '4 days', '24.0', 'Finalizado há 4 dias', 'Milho', 'TRANS-002', 2),
-  ('GC-013', 'DEE-3333', 'Cliente M EIRELI', 'CT-013', 2, 'standby', CURRENT_DATE - INTERVAL '5 days', 16.200, '[8000, 8200]'::jsonb, NULL, NULL, NULL, '19.5', 'Aguardando há 5 dias', 'Trigo', 'TRANS-001', 1),
-  ('GC-014', 'EFF-4444', 'Cliente N ME', 'CT-014', 5, 'finalizado', CURRENT_DATE - INTERVAL '6 days', 50.500, '[10200, 10000, 10100, 10200, 10000]'::jsonb, 70.500, '[14200, 14000, 14100, 14200, 14000]'::jsonb, CURRENT_DATE - INTERVAL '6 days', '33.0', 'Finalizado há 6 dias', 'Soja', 'TRANS-002', 2),
-  ('GC-015', 'FGG-5555', 'Cliente O Ltda', 'CT-015', 3, 'cancelado', CURRENT_DATE - INTERVAL '7 days', 25.200, '[8400, 8300, 8500]'::jsonb, NULL, NULL, NULL, '21.0', 'Cancelado há 7 dias', 'Milho', 'TRANS-001', 1);
+  ('GC-011', 'BCC-1111', 'Cliente K Ltda', 'CT-011', 4, 'stand-by', CURRENT_TIMESTAMP - INTERVAL '3 days', 36.800, '[9200, 9100, 9300, 9200]'::jsonb, NULL, NULL, NULL, '28.0', 'Aguardando há 3 dias', 'Soja', 'TRANS-001', 1),
+  ('GC-012', 'CDD-2222', 'Cliente L S.A', 'CT-012', 3, 'concluido', CURRENT_TIMESTAMP - INTERVAL '4 days', 25.800, '[8600, 8500, 8700]'::jsonb, 36.000, '[12000, 11900, 12100]'::jsonb, CURRENT_TIMESTAMP - INTERVAL '4 days', '24.0', 'Finalizado há 4 dias', 'Milho', 'TRANS-002', 2),
+  ('GC-013', 'DEE-3333', 'Cliente M EIRELI', 'CT-013', 2, 'stand-by', CURRENT_TIMESTAMP - INTERVAL '5 days', 16.200, '[8000, 8200]'::jsonb, NULL, NULL, NULL, '19.5', 'Aguardando há 5 dias', 'Trigo', 'TRANS-001', 1),
+  ('GC-014', 'EFF-4444', 'Cliente N ME', 'CT-014', 5, 'concluido', CURRENT_TIMESTAMP - INTERVAL '6 days', 50.500, '[10200, 10000, 10100, 10200, 10000]'::jsonb, 70.500, '[14200, 14000, 14100, 14200, 14000]'::jsonb, CURRENT_TIMESTAMP - INTERVAL '6 days', '33.0', 'Finalizado há 6 dias', 'Soja', 'TRANS-002', 2),
+  ('GC-015', 'FGG-5555', 'Cliente O Ltda', 'CT-015', 3, 'cancelado', CURRENT_TIMESTAMP - INTERVAL '7 days', 25.200, '[8400, 8300, 8500]'::jsonb, NULL, NULL, NULL, '21.0', 'Cancelado há 7 dias', 'Milho', 'TRANS-001', 1);
 
 -- Logs fake (auditoria)
--- Nota: logs_acao usa user_id (não usuario_id) e detalhes é JSONB
-INSERT INTO logs_acao (acao, detalhes, carregamento_id, user_id, data)
+-- Nota: logs_acao usa usuario_id (não user_id) e detalhes é JSONB
+INSERT INTO logs_acao (acao, detalhes, carregamento_id, usuario_id, data)
 SELECT 
-  CASE 
-    WHEN c.status = 'standby' THEN 'criar_carregamento_espera'
-    WHEN c.status = 'finalizado' THEN 'finalizar_carregamento'
+  CASE
+    WHEN c.status = 'stand-by' THEN 'criar_carregamento_espera'
+    WHEN c.status = 'concluido' THEN 'finalizar_carregamento'
     ELSE 'cancelar_carregamento'
   END,
   jsonb_build_object(
@@ -218,14 +218,14 @@ SELECT
     'status', c.status
   ),
   c.id,
-  (SELECT id FROM users LIMIT 1),
+  (SELECT id FROM usuarios LIMIT 1),
   c.data_carregamento
 FROM carregamentos c
 ORDER BY c.id
 LIMIT 15;
 
 -- Mais logs de auditoria (ações de usuário)
-INSERT INTO logs_acao (acao, detalhes, user_id, data)
+INSERT INTO logs_acao (acao, detalhes, usuario_id, data)
 SELECT 
   CASE (row_num % 4)
     WHEN 0 THEN 'alterar_usuario_permissao'
@@ -242,7 +242,7 @@ SELECT
     END,
     'row_num', row_num
   ),
-  (SELECT id FROM users LIMIT 1),
+  (SELECT id FROM usuarios LIMIT 1),
   CURRENT_TIMESTAMP - (row_num || ' hours')::INTERVAL
 FROM (
   SELECT generate_series(1, 10) as row_num
