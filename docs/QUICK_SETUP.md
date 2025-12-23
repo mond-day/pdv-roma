@@ -43,12 +43,12 @@ psql -U postgres -c "CREATE DATABASE pdv_roma;"
 #### **Executar migrations:**
 ```bash
 # Linux/Mac
-psql -U postgres -d pdv_roma -f lib/db/migrations/001_create_users_table.sql
-psql -U postgres -d pdv_roma -f lib/db/migrations/002_create_core_tables.sql
+psql -U postgres -d pdv_roma -f lib/db/migrations/001_init.sql
+psql -U postgres -d pdv_roma -f lib/db/migrations/002_logs_immutable.sql
 psql -U postgres -d pdv_roma -f lib/db/migrations/004_appsmith_schema_alignment.sql
-psql -U postgres -d pdv_roma -f lib/db/migrations/005_add_qtd_eixos_to_vendas.sql
-psql -U postgres -d pdv_roma -f lib/db/migrations/006_add_id_gc_columns.sql
-psql -U postgres -d pdv_roma -f lib/db/migrations/007_add_missing_fields_transportadoras_motoristas.sql
+psql -U postgres -d pdv_roma -f lib/db/migrations/005_fix_encoding_notificacoes.sql
+psql -U postgres -d pdv_roma -f lib/db/migrations/006_fix_encoding_notificacoes_v2.sql
+psql -U postgres -d pdv_roma -f lib/db/migrations/007_normalizar_status_carregamentos.sql
 
 # Windows (via script automatizado)
 .\scripts\executar-todas-migracoes.cmd
@@ -287,13 +287,13 @@ Get-Process -Id (Get-NetTCPConnection -LocalPort 3000).OwningProcess | Stop-Proc
 ### **Erro: `Migration failed`**
 
 Verifique se as migrations estão sendo executadas na ordem correta:
-1. `001_create_users_table.sql`
-2. `002_create_core_tables.sql`
-3. `003_seed_fake_data.sql` (opcional)
-4. `004_appsmith_schema_alignment.sql`
-5. `005_add_qtd_eixos_to_vendas.sql`
-6. `006_add_id_gc_columns.sql`
-7. `007_add_missing_fields_transportadoras_motoristas.sql`
+1. `001_init.sql`
+2. `002_logs_immutable.sql`
+3. `004_appsmith_schema_alignment.sql`
+4. `005_fix_encoding_notificacoes.sql`
+5. `006_fix_encoding_notificacoes_v2.sql`
+6. `007_normalizar_status_carregamentos.sql`
+7. `003_seed_fake_data.sql` (opcional - executar por último)
 
 ---
 
