@@ -224,7 +224,7 @@ export default function ConfiguracoesPage() {
                               <label className="block text-xs text-gray-600 mb-1">
                                 Ou faça upload de uma imagem:
                               </label>
-                              <label className="block">
+                              <div className="flex items-center">
                                 <input
                                   type="file"
                                   accept="image/*"
@@ -232,23 +232,24 @@ export default function ConfiguracoesPage() {
                                     const file = e.target.files?.[0];
                                     if (file) {
                                       setFileName({ ...fileName, [config.key]: file.name });
-                                      
+
                                       // Validar tamanho (máximo 2MB)
                                       if (file.size > 2 * 1024 * 1024) {
                                         alert("A imagem deve ter no máximo 2MB");
+                                        e.target.value = ""; // Limpar input
                                         return;
                                       }
-                                      
+
                                       const reader = new FileReader();
                                       reader.onloadend = async () => {
                                         const base64 = reader.result as string;
-                                        
+
                                         // Atualizar estado local primeiro
-                                        const updatedConfigs = configs.map((c) => 
+                                        const updatedConfigs = configs.map((c) =>
                                           c.key === config.key ? { ...c, value: base64 } : c
                                         );
                                         setConfigs(updatedConfigs);
-                                        
+
                                         // Salvar automaticamente após upload
                                         const items = updatedConfigs.map((c) => ({
                                           key: c.key,
@@ -257,14 +258,14 @@ export default function ConfiguracoesPage() {
 
                                         try {
                                           setIsLoading(true);
-                                          
+
                                           // Validar tamanho do base64 (máximo ~2MB)
                                           if (base64.length > 3 * 1024 * 1024) {
                                             alert("A imagem é muito grande. Use uma imagem menor que 2MB.");
                                             setIsLoading(false);
                                             return;
                                           }
-                                          
+
                                           const res = await fetch("/api/configuracoes", {
                                             method: "PUT",
                                             headers: { "Content-Type": "application/json" },
@@ -285,11 +286,11 @@ export default function ConfiguracoesPage() {
                                           // Atualizar logo imediatamente
                                           const updatedData = await res.json();
                                           console.log("Logo salva, atualizando sidebar...", updatedData);
-                                          
+
                                           // Disparar evento para atualizar logo
                                           localStorage.setItem("configLastUpdate", Date.now().toString());
-                                          localStorage.setItem("logoUpdated", base64); // Salvar logo no localStorage como fallback
-                                          
+                                          localStorage.setItem("EMPRESA_LOGO_URL", base64); // Salvar logo no localStorage
+
                                           // Disparar múltiplos eventos para garantir atualização
                                           window.dispatchEvent(new CustomEvent("configUpdated", { detail: { logo: base64 } }));
                                           setTimeout(() => {
@@ -298,15 +299,20 @@ export default function ConfiguracoesPage() {
                                           setTimeout(() => {
                                             window.dispatchEvent(new CustomEvent("configUpdated", { detail: { logo: base64 } }));
                                           }, 500);
-                                          
+
                                           // Forçar reload do componente Sidebar
                                           window.dispatchEvent(new Event("storage"));
-                                          
-                                          alert("Logo salva com sucesso! A logo será atualizada no menu lateral.");
+
+                                          alert("Logo salva com sucesso! Atualize a página para ver a logo no sidebar.");
+
+                                          // Limpar o input file
+                                          e.target.value = "";
                                         } catch (error) {
                                           console.error("Erro ao salvar logo:", error);
                                           const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
                                           alert(`Erro ao salvar logo: ${errorMessage}\n\nVerifique se o servidor está rodando e tente novamente.`);
+                                          // Limpar o input file em caso de erro
+                                          e.target.value = "";
                                         } finally {
                                           setIsLoading(false);
                                         }
@@ -317,16 +323,16 @@ export default function ConfiguracoesPage() {
                                   className="hidden"
                                   id={`file-upload-${config.key}`}
                                 />
-                                <span 
-                                  onClick={() => document.getElementById(`file-upload-${config.key}`)?.click()}
+                                <label
+                                  htmlFor={`file-upload-${config.key}`}
                                   className="inline-flex items-center px-4 py-2 bg-blue-50 text-blue-700 rounded-lg cursor-pointer hover:bg-blue-100 transition-colors text-sm font-semibold"
                                 >
                                   📁 Escolher Arquivo
-                                </span>
+                                </label>
                                 <span className="ml-2 text-sm text-gray-600">
                                   {fileName[config.key] || "Nenhum arquivo selecionado"}
                                 </span>
-                              </label>
+                              </div>
                             </div>
                           </div>
                         </div>

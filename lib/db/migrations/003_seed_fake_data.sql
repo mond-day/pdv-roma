@@ -49,7 +49,13 @@ INSERT INTO vendas (
   ('GC-012', 'CT-012', 'Cliente L S.A', 'ativo', 'TRANS-002', CURRENT_DATE - INTERVAL '4 days'),
   ('GC-013', 'CT-013', 'Cliente M EIRELI', 'ativo', 'TRANS-001', CURRENT_DATE - INTERVAL '5 days'),
   ('GC-014', 'CT-014', 'Cliente N ME', 'ativo', 'TRANS-002', CURRENT_DATE - INTERVAL '6 days'),
-  ('GC-015', 'CT-015', 'Cliente O Ltda', 'cancelado', 'TRANS-001', CURRENT_DATE - INTERVAL '7 days')
+  ('GC-015', 'CT-015', 'Cliente O Ltda', 'cancelado', 'TRANS-001', CURRENT_DATE - INTERVAL '7 days'),
+  -- Novos contratos sem carregamentos para testar o fluxo completo
+  ('GC-016', 'CT-016', 'Cliente P Agroneg\u00f3cios', 'ativo', 'TRANS-001', CURRENT_DATE),
+  ('GC-017', 'CT-017', 'Cliente Q Com\u00e9rcio', 'ativo', 'TRANS-002', CURRENT_DATE),
+  ('GC-018', 'CT-018', 'Cliente R Gr\u00e3os', 'ativo', 'TRANS-001', CURRENT_DATE),
+  ('GC-019', 'CT-019', 'Cliente S Exporta\u00e7\u00e3o', 'ativo', 'TRANS-002', CURRENT_DATE),
+  ('GC-020', 'CT-020', 'Cliente T Distribuidora', 'ativo', 'TRANS-001', CURRENT_DATE)
 ON CONFLICT (id_gc) DO NOTHING;
 
 -- Produtos das vendas fake
@@ -76,7 +82,13 @@ INSERT INTO produtos_venda (
   ('GC-012', 'PROD-003', 'Trigo', 76.0, 160.00, 12160.00),
   ('GC-013', 'PROD-001', 'Soja', 132.0, 150.00, 19800.00),
   ('GC-014', 'PROD-002', 'Milho', 88.0, 140.00, 12320.00),
-  ('GC-015', 'PROD-003', 'Trigo', 84.0, 160.00, 13440.00)
+  ('GC-015', 'PROD-003', 'Trigo', 84.0, 160.00, 13440.00),
+  -- Produtos dos novos contratos
+  ('GC-016', 'PROD-001', 'Soja', 150.0, 150.00, 22500.00),
+  ('GC-017', 'PROD-002', 'Milho', 130.0, 140.00, 18200.00),
+  ('GC-018', 'PROD-003', 'Trigo', 95.0, 160.00, 15200.00),
+  ('GC-019', 'PROD-001', 'Soja', 180.0, 150.00, 27000.00),
+  ('GC-020', 'PROD-002', 'Milho', 105.0, 140.00, 14700.00)
 ON CONFLICT DO NOTHING;
 
 -- Carregamentos fake
