@@ -99,8 +99,8 @@ export function Sidebar() {
     const intervalCheck = setInterval(() => {
       // Verificar se há mudança no localStorage (fallback)
       const lastUpdate = localStorage.getItem("configLastUpdate");
-      const logoFromStorage = localStorage.getItem("logoUpdated");
-      
+      const logoFromStorage = localStorage.getItem("EMPRESA_LOGO_URL");
+
       if (lastUpdate) {
         const lastUpdateTime = parseInt(lastUpdate, 10);
         const now = Date.now();
@@ -109,7 +109,6 @@ export function Sidebar() {
           if (logoFromStorage) {
             console.log("Logo encontrada no localStorage, usando...");
             setLogoUrl(logoFromStorage);
-            localStorage.removeItem("logoUpdated");
           } else {
             loadLogo();
           }

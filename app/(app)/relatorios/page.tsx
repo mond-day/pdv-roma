@@ -12,16 +12,29 @@ export default function RelatoriosPage() {
   const [de, setDe] = useState(todayISO());
   const [ate, setAte] = useState(todayISO());
   const [groupBy, setGroupBy] = useState("cliente");
+  const [formatoExportacao, setFormatoExportacao] = useState<"visualizar" | "pdf" | "csv" | "xlsx">("visualizar");
   const [data, setData] = useState<any>(null);
 
   const handleGerar = () => {
-    fetch(`/api/relatorios?de=${de}&ate=${ate}&groupBy=${groupBy}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.ok) {
-          setData(data);
-        }
-      });
+    if (formatoExportacao === "visualizar") {
+      // Visualizar na tela
+      fetch(`/api/relatorios?de=${de}&ate=${ate}&groupBy=${groupBy}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.ok) {
+            setData(data);
+          }
+        });
+    } else if (formatoExportacao === "csv") {
+      // Exportar CSV
+      window.open(`/api/relatorios/export.csv?de=${de}&ate=${ate}&groupBy=${groupBy}`);
+    } else if (formatoExportacao === "pdf") {
+      // Exportar PDF
+      window.open(`/api/relatorios/export.pdf?de=${de}&ate=${ate}&groupBy=${groupBy}`);
+    } else if (formatoExportacao === "xlsx") {
+      // Exportar XLSX
+      window.open(`/api/relatorios/export.xlsx?de=${de}&ate=${ate}&groupBy=${groupBy}`);
+    }
   };
 
   const handleExportCSV = () => {
@@ -38,7 +51,7 @@ export default function RelatoriosPage() {
         <h1 className="text-2xl font-bold">Relatórios</h1>
 
         <Card>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
             <DateInput
               label="De"
               value={de}
@@ -63,8 +76,25 @@ export default function RelatoriosPage() {
                 <option value="motorista">Motorista</option>
               </select>
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Formato
+              </label>
+              <select
+                className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                value={formatoExportacao}
+                onChange={(e) => setFormatoExportacao(e.target.value as "visualizar" | "pdf" | "csv" | "xlsx")}
+              >
+                <option value="visualizar">Visualizar na tela</option>
+                <option value="pdf">Baixar PDF</option>
+                <option value="csv">Baixar CSV</option>
+                <option value="xlsx">Baixar XLSX</option>
+              </select>
+            </div>
           </div>
-          <Button onClick={handleGerar}>Gerar Relatório</Button>
+          <Button onClick={handleGerar}>
+            {formatoExportacao === "visualizar" ? "Gerar Relatório" : `Baixar Relatório (${formatoExportacao.toUpperCase()})`}
+          </Button>
         </Card>
 
         {data && (

@@ -45,19 +45,19 @@ export async function listCarregamentos(params: {
   }
 
   if (params.cliente) {
-    conditions.push(`v.nome_cliente ILIKE $${paramIndex}`);
+    conditions.push(`(v.nome_cliente ILIKE $${paramIndex} OR c.cliente_nome ILIKE $${paramIndex})`);
     values.push(`%${params.cliente}%`);
     paramIndex++;
   }
 
   if (params.transportadora) {
-    conditions.push(`c.transportadora_id::text ILIKE $${paramIndex}`);
+    conditions.push(`(t.nome ILIKE $${paramIndex} OR c.transportadora_id::text ILIKE $${paramIndex})`);
     values.push(`%${params.transportadora}%`);
     paramIndex++;
   }
 
   if (params.motorista) {
-    conditions.push(`c.motorista_id::text ILIKE $${paramIndex}`);
+    conditions.push(`(m.nome ILIKE $${paramIndex} OR c.motorista_id::text ILIKE $${paramIndex})`);
     values.push(`%${params.motorista}%`);
     paramIndex++;
   }
@@ -69,7 +69,7 @@ export async function listCarregamentos(params: {
   }
 
   if (params.contrato) {
-    conditions.push(`v.codigo ILIKE $${paramIndex}`);
+    conditions.push(`(v.codigo ILIKE $${paramIndex} OR c.contrato_codigo ILIKE $${paramIndex})`);
     values.push(`%${params.contrato}%`);
     paramIndex++;
   }
@@ -79,31 +79,37 @@ export async function listCarregamentos(params: {
   // Sempre fazer JOIN com vendas para ter acesso aos dados do cliente e contrato
   // Usar id_gc para fazer o JOIN, já que venda_id pode não existir
   const countQuery = `
-    SELECT COUNT(*) 
+    SELECT COUNT(*)
     FROM carregamentos c
     LEFT JOIN vendas v ON v.id_gc = c.id_gc
+    LEFT JOIN transportadoras t ON t.id_gc = c.transportadora_id
+    LEFT JOIN motoristas m ON m.id = c.motorista_id
     ${whereClause}
   `;
   const dataQuery = `
-    SELECT 
+    SELECT
       c.id,
       c.data_carregamento::text as data_carregamento,
       c.placa,
       COALESCE(v.nome_cliente, c.cliente_nome, '') as cliente_nome,
       COALESCE(v.codigo, c.contrato_codigo, '') as contrato_codigo,
       COALESCE(c.produto_nome, '') as produto_nome,
-      CASE 
-        WHEN c.bruto_kg IS NOT NULL AND c.tara_kg IS NOT NULL 
+      CASE
+        WHEN c.bruto_kg IS NOT NULL AND c.tara_kg IS NOT NULL
         THEN (c.bruto_kg - c.tara_kg)
         WHEN c.liquido_kg IS NOT NULL
         THEN c.liquido_kg
         ELSE NULL
       END as liquido_kg,
       c.status,
-      i.status as integracao_status
+      i.status as integracao_status,
+      t.nome as transportadora_nome,
+      m.nome as motorista_nome
     FROM carregamentos c
     LEFT JOIN vendas v ON v.id_gc = c.id_gc
     LEFT JOIN integracoes_n8n i ON i.carregamento_id = c.id
+    LEFT JOIN transportadoras t ON t.id_gc = c.transportadora_id
+    LEFT JOIN motoristas m ON m.id = c.motorista_id
     ${whereClause}
     ORDER BY c.data_carregamento DESC
     LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
@@ -144,6 +150,8 @@ export async function listCarregamentos(params: {
         liquido_kg: row.liquido_kg ? parseInt(String(row.liquido_kg), 10) : null,
         status: row.status || 'standby',
         integracao_status: row.integracao_status || null,
+        transportadora_nome: row.transportadora_nome || null,
+        motorista_nome: row.motorista_nome || null,
       };
       return item;
     });

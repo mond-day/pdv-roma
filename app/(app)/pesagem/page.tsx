@@ -748,7 +748,7 @@ export default function PesagemPage() {
                     }}
                   />
                 </div>
-                <div className="flex items-end pb-1">
+                <div className="flex items-end pb-1 gap-2">
                   <Button
                     onClick={async () => {
                       if (buscaTexto.trim().length >= 2) {
@@ -761,6 +761,9 @@ export default function PesagemPage() {
                     isLoading={searchInputAtivo}
                   >
                     🔍 Buscar
+                  </Button>
+                  <Button variant="ghost" onClick={handleLimparBusca}>
+                    Limpar
                   </Button>
                 </div>
               </div>
@@ -831,11 +834,6 @@ export default function PesagemPage() {
                   )}
                 </div>
               )}
-              <div className="flex gap-3">
-                <Button variant="ghost" onClick={handleLimparBusca}>
-                  Limpar
-                </Button>
-              </div>
             </div>
           </Card>
         )}
@@ -1135,7 +1133,16 @@ export default function PesagemPage() {
                 <div>
                   <span className="text-sm font-medium text-gray-700">Data:</span>
                   <p className="text-base font-semibold text-gray-900">
-                    {new Date(selectedCarregamentoModal.data_carregamento).toLocaleDateString("pt-BR")}
+                    {selectedCarregamentoModal.data_carregamento
+                      ? (() => {
+                          const date = new Date(selectedCarregamentoModal.data_carregamento);
+                          if (isNaN(date.getTime())) {
+                            return "-";
+                          }
+                          return date.toLocaleDateString("pt-BR");
+                        })()
+                      : "-"
+                    }
                   </p>
                 </div>
               </div>
@@ -1152,7 +1159,7 @@ export default function PesagemPage() {
                 {selectedCarregamentoModal.status === "standby" && (
                   <Button
                     onClick={() => {
-                      setVendaSelecionada(selectedCarregamentoModal);
+                      handleSelecionarVenda(selectedCarregamentoModal);
                       setShowCarregamentoModal(false);
                       setSelectedCarregamentoModal(null);
                       setMostrarLista(false);
