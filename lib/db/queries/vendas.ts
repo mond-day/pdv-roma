@@ -95,7 +95,23 @@ export async function searchVendasECarregamentos(params: {
         NULL::bigint AS carregamento_id,
         NULL::text AS placa,
         (
-          SELECT STRING_AGG(DISTINCT pv.nome_produto, ', ')
+          SELECT STRING_AGG(
+            DISTINCT pv.nome_produto || ' (' ||
+            ROUND(
+              COALESCE(pv.quantidade, 0) - COALESCE(
+                (
+                  SELECT SUM((c.peso_final_total - c.tara_total) / 1000.0)
+                  FROM carregamentos c
+                  WHERE c.venda_id = pv.venda_id
+                    AND c.produto_venda_id = pv.id
+                    AND c.status IN ('finalizado', 'concluido')
+                ),
+                0
+              ),
+              3
+            ) || ' TON disponível)',
+            ', '
+          )
           FROM produtos_venda pv
           WHERE pv.venda_id = v.id_gc
         ) AS produto_display,

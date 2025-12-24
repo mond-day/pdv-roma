@@ -259,6 +259,18 @@ export async function finalizarCarregamento(
   try {
     await client.query("BEGIN");
 
+    // Buscar dados do carregamento antes de finalizar
+    const carregamentoResult = await client.query(
+      `SELECT produto_venda_id, venda_id, tara_total FROM carregamentos WHERE id = $1`,
+      [id]
+    );
+
+    if (carregamentoResult.rows.length === 0) {
+      throw new Error('Carregamento não encontrado');
+    }
+
+    const carregamento = carregamentoResult.rows[0];
+
     // Atualizar carregamento com peso_final_total em gramas
     await client.query(
       `
@@ -276,6 +288,26 @@ export async function finalizarCarregamento(
         id,
       ]
     );
+
+    // ATUALIZAÇÃO AUTOMÁTICA DE QUANTIDADE (Q1-A)
+    // Calcular peso líquido em TON e subtrair da quantidade disponível
+    if (carregamento.produto_venda_id && carregamento.tara_total && data.peso_final_total) {
+      const pesoLiquidoTon = (data.peso_final_total - carregamento.tara_total) / 1000.0;
+
+      await client.query(
+        `
+        UPDATE produtos_venda
+        SET quantidade = GREATEST(0, quantidade - $1)
+        WHERE id = $2 AND venda_id = $3
+        `,
+        [pesoLiquidoTon, carregamento.produto_venda_id, carregamento.venda_id]
+      );
+
+      console.log(
+        `✅ Quantidade atualizada: -${pesoLiquidoTon.toFixed(3)} TON ` +
+        `(Produto ${carregamento.produto_venda_id}, Venda ${carregamento.venda_id})`
+      );
+    }
 
     // Criar/atualizar integração
     await client.query(

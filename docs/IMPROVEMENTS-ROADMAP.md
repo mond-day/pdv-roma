@@ -378,11 +378,36 @@ Existe documentação técnica, mas pode melhorar
 
 ### **🔴 CRÍTICO (Fazer antes de produção)**
 
-1. ✅ Rate Limiting no Login (2h)
-2. ✅ Validação de Secrets Obrigatórios (1h)
-3. ✅ Database Backups Automáticos (3h)
+1. ⏳ Rate Limiting no Login (2h) - **PENDENTE**
+2. ⏳ Validação de Secrets Obrigatórios (1h) - **PENDENTE**
+3. ⏳ Database Backups Automáticos (3h) - **PENDENTE**
 
 **Total:** ~6 horas
+
+### **✅ IMPLEMENTADO (2025-12-24)**
+
+1. ✅ **Quantidade Disponível de Produtos** (3h)
+   - Query de produtos com cálculo de disponibilidade
+   - API endpoint `/api/produtos/disponiveis`
+   - Exibição no formato "Produto X (XX,XXX TON disponível)"
+   - Validação automática ao criar carregamento
+
+2. ✅ **Busca Dinâmica de Placas** (2h)
+   - API endpoint `/api/placas/search`
+   - Autocomplete com sugestões
+   - Auto-população de motorista e transportadora
+
+3. ✅ **Configurações de Webhooks** (2h)
+   - API endpoint `/api/webhooks-config` (GET/PUT)
+   - Interface na página de configurações
+   - 6 webhooks configuráveis
+
+4. ✅ **Análise Crítica Completa** (3h)
+   - Documentação de problemas críticos
+   - Identificação de gaps de negócio
+   - Plano de ação detalhado
+
+**Total Implementado:** ~10 horas
 
 ---
 
