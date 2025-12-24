@@ -49,17 +49,21 @@ REM Solicitar senha do PostgreSQL
 echo [INFO] Será solicitada a senha do PostgreSQL
 echo.
 echo [INFO] Executando migrações na ordem:
-echo        001 - Init
-echo        002 - Logs Immutable
-echo        003 - Seed Fake Data
-echo        004 - Appsmith Schema Alignment
-echo        005 - Fix Encoding UTF-8
+       001 - Init
+       002 - Logs Immutable
+       003 - Seed Fake Data
+       004 - Appsmith Schema Alignment
+       005 - Fix Encoding UTF-8
+       006 - Fix Encoding V2
+       007 - Normalizar Status
+       008 - Align with Real Schema
+       009 - Fix Schema Alignment (CORRETIVA)
 echo.
 
 REM Executar migrações em ordem
 set ERROR_COUNT=0
 
-echo [1/5] Executando migração 001 (Init)...
+echo [1/9] Executando migração 001 (Init)...
 "%PSQL_PATH%" -U postgres -d pdv_roma -f "lib\db\migrations\001_init.sql"
 if %errorlevel% neq 0 (
     echo [AVISO] Migração 001 pode ter falhado ou já foi executada
@@ -67,7 +71,7 @@ if %errorlevel% neq 0 (
 )
 echo.
 
-echo [2/5] Executando migração 002 (Logs Immutable)...
+echo [2/9] Executando migração 002 (Logs Immutable)...
 "%PSQL_PATH%" -U postgres -d pdv_roma -f "lib\db\migrations\002_logs_immutable.sql"
 if %errorlevel% neq 0 (
     echo [AVISO] Migração 002 pode ter falhado ou já foi executada
@@ -75,7 +79,7 @@ if %errorlevel% neq 0 (
 )
 echo.
 
-echo [3/5] Executando migração 003 (Seed Fake Data)...
+echo [3/9] Executando migração 003 (Seed Fake Data)...
 echo [INFO] Esta migração pode ser executada separadamente com: executar-seed.cmd
 "%PSQL_PATH%" -U postgres -d pdv_roma -f "lib\db\migrations\003_seed_fake_data.sql"
 if %errorlevel% neq 0 (
@@ -84,7 +88,7 @@ if %errorlevel% neq 0 (
 )
 echo.
 
-echo [4/5] Executando migração 004 (Appsmith Schema Alignment)...
+echo [4/9] Executando migração 004 (Appsmith Schema Alignment)...
 "%PSQL_PATH%" -U postgres -d pdv_roma -f "lib\db\migrations\004_appsmith_schema_alignment.sql"
 if %errorlevel% neq 0 (
     echo [AVISO] Migração 004 pode ter falhado ou já foi executada
@@ -92,10 +96,42 @@ if %errorlevel% neq 0 (
 )
 echo.
 
-echo [5/5] Executando migração 005 (Fix Encoding UTF-8)...
+echo [5/9] Executando migração 005 (Fix Encoding UTF-8)...
 "%PSQL_PATH%" -U postgres -d pdv_roma -f "lib\db\migrations\005_fix_encoding_notificacoes.sql"
 if %errorlevel% neq 0 (
     echo [AVISO] Migração 005 pode ter falhado ou já foi executada
+    set /a ERROR_COUNT+=1
+)
+echo.
+
+echo [6/9] Executando migração 006 (Fix Encoding V2)...
+"%PSQL_PATH%" -U postgres -d pdv_roma -f "lib\db\migrations\006_fix_encoding_notificacoes_v2.sql"
+if %errorlevel% neq 0 (
+    echo [AVISO] Migração 006 pode ter falhado ou já foi executada
+    set /a ERROR_COUNT+=1
+)
+echo.
+
+echo [7/9] Executando migração 007 (Normalizar Status)...
+"%PSQL_PATH%" -U postgres -d pdv_roma -f "lib\db\migrations\007_normalizar_status_carregamentos.sql"
+if %errorlevel% neq 0 (
+    echo [AVISO] Migração 007 pode ter falhado ou já foi executada
+    set /a ERROR_COUNT+=1
+)
+echo.
+
+echo [8/9] Executando migração 008 (Align with Real Schema)...
+"%PSQL_PATH%" -U postgres -d pdv_roma -f "lib\db\migrations\008_align_with_real_schema.sql"
+if %errorlevel% neq 0 (
+    echo [AVISO] Migração 008 pode ter falhado ou já foi executada
+    set /a ERROR_COUNT+=1
+)
+echo.
+
+echo [9/9] Executando migração 009 (Fix Schema Alignment - CORRETIVA)...
+"%PSQL_PATH%" -U postgres -d pdv_roma -f "lib\db\migrations\009_fix_schema_alignment.sql"
+if %errorlevel% neq 0 (
+    echo [ERRO] Migração 009 CRÍTICA falhou!
     set /a ERROR_COUNT+=1
 )
 echo.
@@ -108,6 +144,7 @@ if %ERROR_COUNT% equ 0 (
 )
 
 echo.
+echo [INFO] PRÓXIMO PASSO: scripts\executar-seed.cmd
 echo [INFO] Reinicie o servidor para aplicar todas as mudanças
 echo.
 pause
