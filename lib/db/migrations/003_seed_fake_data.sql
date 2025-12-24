@@ -3,6 +3,9 @@
 -- Para executar: psql -U postgres -d pdv_roma -f lib/db/migrations/003_seed_fake_data.sql
 -- Ou use os scripts: seed-fake-data.ps1 (Windows) ou seed-fake-data.sh (Linux/Mac)
 
+-- Limpar dados fake anteriores (manter integridade referencial)
+TRUNCATE TABLE carregamentos, vendas, produtos_venda, transportadoras, motoristas RESTART IDENTITY CASCADE;
+
 -- Transportadoras fake (precisa existir antes de vendas e carregamentos)
 INSERT INTO transportadoras (
   id_gc,

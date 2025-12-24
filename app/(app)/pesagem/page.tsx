@@ -826,6 +826,7 @@ export default function PesagemPage() {
                             <p className="text-sm text-gray-600">
                               {item.produto_display || "Sem produto"}
                               {item.placa && ` | Placa: ${item.placa}`}
+                              {!item.is_carregamento && item.situacao && ` | Situação: ${item.situacao}`}
                             </p>
                             <p className="text-xs text-gray-500">
                               {item.data
