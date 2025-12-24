@@ -44,6 +44,8 @@ export const CarregamentoDetalheSchema = z.object({
   cliente_nome: z.string(),
   contrato_codigo: z.union([z.string(), z.number()]).nullable().optional(),
   id_gc: z.union([z.number(), z.string()]).nullable().optional(),
+  venda_id: z.union([z.string(), z.number()]).nullable().optional(),
+  data_carregamento: z.string().nullable().optional(),
 
   transportadora_id: z.number().int().nullable().optional(),
   motorista_id: z.number().int().nullable().optional(),
@@ -51,11 +53,9 @@ export const CarregamentoDetalheSchema = z.object({
   produto_venda_id: z.number().int().nullable().optional(),
   produto_nome: z.string().nullable().optional(),
 
-  qtd_desejada_ton: z.number().nullable().optional(),
-
-  tara_kg: z.number().int().nullable().optional(),
-  bruto_kg: z.number().int().nullable().optional(),
-  liquido_kg: z.number().int().nullable().optional(),
+  qtd_desejada: z.union([z.string(), z.number()]).nullable().optional(),
+  tara_total: z.number().nullable().optional(),
+  peso_final_total: z.number().nullable().optional(),
 
   eixos: z.number().int().nullable().optional(),
   tara_eixos_kg: z.any().nullable().optional(),
