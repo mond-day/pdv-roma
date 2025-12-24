@@ -51,6 +51,7 @@ export default function PesagemPage() {
 
   // Opções para selects
   const opcoesEixos = [
+    { value: "", label: "Selecione a quantidade de eixos" },
     { value: "1", label: "1 Eixo" },
     { value: "2", label: "2 Eixos" },
     { value: "3", label: "3 Eixos" },

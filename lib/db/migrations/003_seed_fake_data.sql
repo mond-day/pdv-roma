@@ -37,27 +37,27 @@ INSERT INTO vendas (
   transportadora_id,
   data
 ) VALUES
-  ('GC-001', 'CT-001', 'Cliente A Ltda', 'ativo', 'TRANS-001', CURRENT_DATE),
-  ('GC-002', 'CT-002', 'Cliente B S.A', 'ativo', 'TRANS-002', CURRENT_DATE),
-  ('GC-003', 'CT-003', 'Cliente C EIRELI', 'ativo', 'TRANS-001', CURRENT_DATE),
-  ('GC-004', 'CT-004', 'Cliente D ME', 'ativo', 'TRANS-002', CURRENT_DATE - INTERVAL '1 day'),
-  ('GC-005', 'CT-005', 'Cliente E Ltda', 'cancelado', 'TRANS-001', CURRENT_DATE),
-  ('GC-006', 'CT-006', 'Cliente F S.A', 'ativo', 'TRANS-002', CURRENT_DATE),
-  ('GC-007', 'CT-007', 'Cliente G EIRELI', 'ativo', 'TRANS-001', CURRENT_DATE),
-  ('GC-008', 'CT-008', 'Cliente H ME', 'ativo', 'TRANS-002', CURRENT_DATE - INTERVAL '2 days'),
-  ('GC-009', 'CT-009', 'Cliente I Ltda', 'ativo', 'TRANS-001', CURRENT_DATE),
-  ('GC-010', 'CT-010', 'Cliente J S.A', 'ativo', 'TRANS-002', CURRENT_DATE),
-  ('GC-011', 'CT-011', 'Cliente K Ltda', 'ativo', 'TRANS-001', CURRENT_DATE - INTERVAL '3 days'),
-  ('GC-012', 'CT-012', 'Cliente L S.A', 'ativo', 'TRANS-002', CURRENT_DATE - INTERVAL '4 days'),
-  ('GC-013', 'CT-013', 'Cliente M EIRELI', 'ativo', 'TRANS-001', CURRENT_DATE - INTERVAL '5 days'),
-  ('GC-014', 'CT-014', 'Cliente N ME', 'ativo', 'TRANS-002', CURRENT_DATE - INTERVAL '6 days'),
-  ('GC-015', 'CT-015', 'Cliente O Ltda', 'cancelado', 'TRANS-001', CURRENT_DATE - INTERVAL '7 days'),
+  ('GC-001', 'CT-001', 'Cliente A Ltda', 'Contrato Qtd', 'TRANS-001', CURRENT_DATE),
+  ('GC-002', 'CT-002', 'Cliente B S.A', 'Contrato Valor', 'TRANS-002', CURRENT_DATE),
+  ('GC-003', 'CT-003', 'Cliente C EIRELI', 'Contrato Qtd', 'TRANS-001', CURRENT_DATE),
+  ('GC-004', 'CT-004', 'Cliente D ME', 'Contrato Valor', 'TRANS-002', CURRENT_DATE - INTERVAL '1 day'),
+  ('GC-005', 'CT-005', 'Cliente E Ltda', 'Contrato Finalizado', 'TRANS-001', CURRENT_DATE),
+  ('GC-006', 'CT-006', 'Cliente F S.A', 'Contrato Qtd', 'TRANS-002', CURRENT_DATE),
+  ('GC-007', 'CT-007', 'Cliente G EIRELI', 'Contrato Valor', 'TRANS-001', CURRENT_DATE),
+  ('GC-008', 'CT-008', 'Cliente H ME', 'Contrato Qtd', 'TRANS-002', CURRENT_DATE - INTERVAL '2 days'),
+  ('GC-009', 'CT-009', 'Cliente I Ltda', 'Contrato Valor', 'TRANS-001', CURRENT_DATE),
+  ('GC-010', 'CT-010', 'Cliente J S.A', 'Contrato Qtd', 'TRANS-002', CURRENT_DATE),
+  ('GC-011', 'CT-011', 'Cliente K Ltda', 'Contrato Valor', 'TRANS-001', CURRENT_DATE - INTERVAL '3 days'),
+  ('GC-012', 'CT-012', 'Cliente L S.A', 'Contrato Qtd', 'TRANS-002', CURRENT_DATE - INTERVAL '4 days'),
+  ('GC-013', 'CT-013', 'Cliente M EIRELI', 'Contrato Valor', 'TRANS-001', CURRENT_DATE - INTERVAL '5 days'),
+  ('GC-014', 'CT-014', 'Cliente N ME', 'Contrato Qtd', 'TRANS-002', CURRENT_DATE - INTERVAL '6 days'),
+  ('GC-015', 'CT-015', 'Cliente O Ltda', 'Contrato Finalizado', 'TRANS-001', CURRENT_DATE - INTERVAL '7 days'),
   -- Novos contratos sem carregamentos para testar o fluxo completo
-  ('GC-016', 'CT-016', 'Cliente P Agroneg\u00f3cios', 'ativo', 'TRANS-001', CURRENT_DATE),
-  ('GC-017', 'CT-017', 'Cliente Q Com\u00e9rcio', 'ativo', 'TRANS-002', CURRENT_DATE),
-  ('GC-018', 'CT-018', 'Cliente R Gr\u00e3os', 'ativo', 'TRANS-001', CURRENT_DATE),
-  ('GC-019', 'CT-019', 'Cliente S Exporta\u00e7\u00e3o', 'ativo', 'TRANS-002', CURRENT_DATE),
-  ('GC-020', 'CT-020', 'Cliente T Distribuidora', 'ativo', 'TRANS-001', CURRENT_DATE)
+  ('GC-016', 'CT-016', 'Cliente P Agronegócios', 'Contrato Qtd', 'TRANS-001', CURRENT_DATE),
+  ('GC-017', 'CT-017', 'Cliente Q Comércio', 'Contrato Qtd', 'TRANS-002', CURRENT_DATE),
+  ('GC-018', 'CT-018', 'Cliente R Grãos', 'Contrato Valor', 'TRANS-001', CURRENT_DATE),
+  ('GC-019', 'CT-019', 'Cliente S Exportação', 'Contrato Qtd', 'TRANS-002', CURRENT_DATE),
+  ('GC-020', 'CT-020', 'Cliente T Distribuidora', 'Contrato Valor', 'TRANS-001', CURRENT_DATE)
 ON CONFLICT (id_gc) DO NOTHING;
 
 -- Produtos das vendas fake
