@@ -6,6 +6,7 @@ import {
 } from "@/lib/validators/carregamentos";
 import { finalizarCarregamento, getCarregamentoById } from "@/lib/db/queries/carregamentos";
 import { createLog } from "@/lib/db/queries/logs";
+import { tonToGramas } from "@/lib/utils/weight";
 import {
   successResponse,
   errorResponse,
@@ -41,9 +42,14 @@ export async function POST(
     const body = await request.json();
     const validated = FinalizarBodySchema.parse(body);
 
+    // Converter bruto_kg (que na verdade é TON) para gramas
+    const pesoFinalTotalGramas = tonToGramas(validated.bruto_kg);
+    if (!pesoFinalTotalGramas) {
+      return errorResponse("Peso bruto inválido", 400);
+    }
+
     const result = await finalizarCarregamento(id, {
-      bruto_kg: validated.bruto_kg,
-      liquido_kg: validated.liquido_kg,
+      peso_final_total: pesoFinalTotalGramas,
       final_eixos_kg: validated.final_eixos_kg,
       idempotency_key: validated.idempotency_key,
       n8n_payload: validated.n8n_payload,
@@ -51,7 +57,7 @@ export async function POST(
 
     await createLog({
       acao: "finalizar_carregamento",
-      detalhes: `Carregamento ${id} finalizado. Líquido: ${validated.liquido_kg}kg`,
+      detalhes: `Carregamento ${id} finalizado. Bruto: ${validated.bruto_kg}TON`,
       request_id: validated.idempotency_key,
       carregamento_id: id,
       user_id: user.id,

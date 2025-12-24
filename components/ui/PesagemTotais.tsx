@@ -1,4 +1,5 @@
 import React from "react";
+import { formatTonWithUnit } from "@/lib/utils/weight";
 
 interface TotalItem {
   label: string;
@@ -16,9 +17,13 @@ interface PesagemTotaisProps {
 export function PesagemTotais({ items, className = "" }: PesagemTotaisProps) {
   const formatValue = (value: number, unit: "kg" | "t") => {
     if (unit === "t") {
-      return `${(value / 1000).toFixed(2)} t`;
+      // Converter kg para TON e formatar
+      const ton = value / 1000;
+      return formatTonWithUnit(ton);
     }
-    return `${value.toFixed(0)} kg`;
+    // Para kg, também converter para TON e formatar
+    const ton = value / 1000;
+    return formatTonWithUnit(ton);
   };
 
   const getVariantClasses = (variant: TotalItem["variant"] = "default") => {

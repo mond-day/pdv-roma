@@ -24,6 +24,8 @@ export const CarregamentoResumoSchema = z.object({
   cliente_nome: z.string().default(""), // Aceita string vazia
   contrato_codigo: z.union([z.string(), z.number()]).nullable().optional().default(""),
   produto_nome: z.string().nullable().optional().default(""),
+  liquido_ton: z.number().nullable().optional(),
+  // Manter campo antigo para compatibilidade (deprecated)
   liquido_kg: z.number().int().nullable().optional(),
   status: CarregamentoStatusEnum,
   integracao_status: IntegracaoStatusEnum.nullable().optional(),
@@ -58,6 +60,13 @@ export const CarregamentoDetalheSchema = z.object({
   qtd_desejada: z.union([z.string(), z.number()]).nullable().optional(),
   tara_total: z.number().nullable().optional(),
   peso_final_total: z.number().nullable().optional(),
+  tara_ton: z.number().nullable().optional(),
+  bruto_ton: z.number().nullable().optional(),
+  liquido_ton: z.number().nullable().optional(),
+  // Manter campos antigos para compatibilidade (deprecated)
+  tara_kg: z.number().int().nullable().optional(),
+  bruto_kg: z.number().int().nullable().optional(),
+  liquido_kg: z.number().int().nullable().optional(),
 
   eixos: z.number().int().nullable().optional(),
   tara_eixos_kg: z.any().nullable().optional(),
@@ -90,10 +99,10 @@ export const FinalizarBodySchema = z.object({
   idempotency_key: z.string().min(8),
   timestamp: z.string(), // ISO
 
-  // pesos finais
-  bruto_kg: z.number().int().min(0),
-  liquido_kg: z.number().int().min(0),
-  final_eixos_kg: z.array(z.number().int().min(0)).optional().default([]),
+  // pesos finais (em TON com 3 casas decimais)
+  bruto_kg: z.number().min(0), // Na verdade é TON, mantendo nome para compatibilidade
+  liquido_kg: z.number().min(0).optional(), // Calculado automaticamente
+  final_eixos_kg: z.array(z.number().min(0)).optional().default([]),
 
   // payload completo (opcional se a UI já tiver pronto)
   n8n_payload: z.any().optional(),

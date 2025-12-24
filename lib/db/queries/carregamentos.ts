@@ -1,6 +1,7 @@
 import { pool } from "../pool";
 import type { CarregamentoResumoSchema } from "@/lib/validators/carregamentos";
 import type { z } from "zod";
+import { gramasToTon } from "@/lib/utils/weight";
 
 export async function listCarregamentos(params: {
   date?: string;
@@ -97,9 +98,9 @@ export async function listCarregamentos(params: {
       COALESCE(pv.nome_produto, '') as produto_nome,
       CASE
         WHEN c.peso_final_total IS NOT NULL AND c.tara_total IS NOT NULL
-        THEN (c.peso_final_total - c.tara_total)
+        THEN (c.peso_final_total - c.tara_total) / 1000.0
         ELSE NULL
-      END as liquido_kg,
+      END as liquido_ton,
       c.status,
       i.status as integracao_status,
       t.nome as transportadora_nome,
@@ -147,7 +148,7 @@ export async function listCarregamentos(params: {
         cliente_nome: row.cliente_nome || '',
         contrato_codigo: row.contrato_codigo || '',
         produto_nome: row.produto_nome || '',
-        liquido_kg: row.liquido_kg ? parseInt(String(row.liquido_kg), 10) : null,
+        liquido_ton: row.liquido_ton ? parseFloat(String(row.liquido_ton)) : null,
         status: row.status || 'standby',
         integracao_status: row.integracao_status || null,
         transportadora_nome: row.transportadora_nome || null,
@@ -189,10 +190,10 @@ export async function getCarregamentoById(id: number) {
       m.nome as motorista_nome,
       t.nome as transportadora_nome,
       CASE
-        WHEN c.status = 'finalizado' AND c.peso_final_total IS NOT NULL AND c.tara_total IS NOT NULL
-        THEN (c.peso_final_total - c.tara_total)
+        WHEN c.peso_final_total IS NOT NULL AND c.tara_total IS NOT NULL
+        THEN (c.peso_final_total - c.tara_total) / 1000.0
         ELSE NULL
-      END as liquido_kg,
+      END as liquido_ton,
       jsonb_build_object(
         'status', i.status,
         'ultima_mensagem', i.ultima_mensagem,
@@ -231,6 +232,11 @@ export async function getCarregamentoById(id: number) {
     });
   }
 
+  // Converter tara_total e peso_final_total de gramas para TON
+  const taraTon = row.tara_total ? gramasToTon(parseFloat(String(row.tara_total))) : null;
+  const pesoFinalTon = row.peso_final_total ? gramasToTon(parseFloat(String(row.peso_final_total))) : null;
+  const liquidoTon = row.liquido_ton ? parseFloat(String(row.liquido_ton)) : null;
+
   return {
     id: row.id,
     status: row.status,
@@ -249,11 +255,19 @@ export async function getCarregamentoById(id: number) {
     qtd_desejada: row.qtd_desejada,
     tara_total: row.tara_total ? parseFloat(row.tara_total) : null,
     peso_final_total: row.peso_final_total ? parseFloat(row.peso_final_total) : null,
-    liquido_kg: row.liquido_kg ? parseFloat(row.liquido_kg) : null,
+    // Campos convertidos para TON
+    tara_ton: taraTon,
+    bruto_ton: pesoFinalTon,
+    liquido_ton: liquidoTon,
+    // Manter campos antigos para compatibilidade (deprecated)
+    tara_kg: taraTon ? Math.round(taraTon * 1000) : null,
+    bruto_kg: pesoFinalTon ? Math.round(pesoFinalTon * 1000) : null,
+    liquido_kg: liquidoTon ? Math.round(liquidoTon * 1000) : null,
     eixos: row.eixos,
     tara_eixos_kg: Object.keys(taraEixosObj).length > 0 ? taraEixosObj : null,
     final_eixos_kg: Object.keys(finalEixosObj).length > 0 ? finalEixosObj : null,
     observacoes: row.observacoes,
+    data_carregamento: row.data_carregamento || null,
     finalizado_em: row.finalizado_em ? row.finalizado_em.toISOString() : null,
     cancelado_em: row.cancelado_em ? row.cancelado_em.toISOString() : null,
     cancelamento_motivo: row.cancelamento_motivo,

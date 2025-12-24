@@ -9,6 +9,7 @@ import { DateInput } from "@/components/ui/DateInput";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { todayISO } from "@/lib/utils/dates";
+import { formatTon, formatTonWithUnit } from "@/lib/utils/weight";
 
 export default function CarregamentosPage() {
   const router = useRouter();
@@ -128,9 +129,9 @@ export default function CarregamentosPage() {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
                     Cliente
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                    Líquido (kg)
-                  </th>
+                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
+                     Líquido (TON)
+                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
                     Status
                   </th>
@@ -166,9 +167,11 @@ export default function CarregamentosPage() {
                         {item.placa}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-900">{item.cliente_nome}</td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                        {item.liquido_kg ? `${item.liquido_kg} kg` : "-"}
-                      </td>
+                       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                         {item.status === 'finalizado' && (item.liquido_ton || item.liquido_kg) 
+                           ? formatTon(item.liquido_ton || (item.liquido_kg ? item.liquido_kg / 1000 : null))
+                           : "-"}
+                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">{getStatusBadge(item.status)}</td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm space-x-2">
                         <Button

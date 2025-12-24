@@ -10,6 +10,7 @@ import { FilterBar } from "@/components/ui/FilterBar";
 import { SkeletonTable } from "@/components/ui/Skeleton";
 import { todayISO } from "@/lib/utils/dates";
 import { formatStatus, getStatusBadgeVariant } from "@/lib/utils/status";
+import { formatTon, formatTonWithUnit } from "@/lib/utils/weight";
 import { Modal } from "@/components/ui/Modal";
 
 export default function HistoricoPage() {
@@ -302,7 +303,7 @@ export default function HistoricoPage() {
                     Motorista
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                    Líquido (kg)
+                    Líquido (TON)
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
                     Status
@@ -343,7 +344,9 @@ export default function HistoricoPage() {
                       <td className="px-4 py-3 text-sm text-gray-900">{item.produto_nome || "-"}</td>
                       <td className="px-4 py-3 text-sm text-gray-900">{item.motorista_nome || "-"}</td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                        {item.liquido_kg ? `${item.liquido_kg} kg` : "-"}
+                        {item.status === 'finalizado' && (item.liquido_ton || item.liquido_kg)
+                          ? formatTon(item.liquido_ton || (item.liquido_kg ? item.liquido_kg / 1000 : null))
+                          : "-"}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">{getStatusBadge(item.status)}</td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm space-x-2">
@@ -501,7 +504,7 @@ export default function HistoricoPage() {
                 <div>
                   <span className="text-sm font-medium text-gray-700">Líquido:</span>
                   <p className="text-base font-semibold text-gray-900">
-                    {selectedCarregamento.liquido_kg ? `${selectedCarregamento.liquido_kg} kg` : "-"}
+                    {formatTon(selectedCarregamento.liquido_ton || (selectedCarregamento.liquido_kg ? selectedCarregamento.liquido_kg / 1000 : null))}
                   </p>
                 </div>
                 <div>

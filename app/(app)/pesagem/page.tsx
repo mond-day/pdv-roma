@@ -15,6 +15,7 @@ import { PesagemTotais } from "@/components/ui/PesagemTotais";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { AutocompleteInput } from "@/components/ui/AutocompleteInput";
 import { formatStatus, getStatusBadgeVariant } from "@/lib/utils/status";
+import { formatTon, formatTonWithUnit, gramasToTon } from "@/lib/utils/weight";
 
 type FasePesagem = "TARA" | "FINAL" | null;
 
@@ -81,6 +82,34 @@ export default function PesagemPage() {
     { value: "", label: "Selecione uma transportadora" }
   ]);
 
+  // Estado para armazenar o ID do motorista que deve ser selecionado após os motoristas carregarem
+  const [motoristaIdPendente, setMotoristaIdPendente] = useState<string | null>(null);
+  const [transportadoraIdPendente, setTransportadoraIdPendente] = useState<string | null>(null);
+
+  // Quando os motoristas são carregados, verificar se há um ID pendente para selecionar
+  useEffect(() => {
+    if (motoristaIdPendente && motoristas.length > 1) {
+      const motoristaExiste = motoristas.some(m => m.value === motoristaIdPendente);
+      if (motoristaExiste) {
+        console.log("Aplicando motorista pendente:", motoristaIdPendente);
+        setMotoristaSelecionado(motoristaIdPendente);
+        setMotoristaIdPendente(null);
+      }
+    }
+  }, [motoristas, motoristaIdPendente]);
+
+  // Quando as transportadoras são carregadas, verificar se há um ID pendente para selecionar
+  useEffect(() => {
+    if (transportadoraIdPendente && transportadoras.length > 1) {
+      const transportadoraExiste = transportadoras.some(t => t.value === transportadoraIdPendente);
+      if (transportadoraExiste) {
+        console.log("Aplicando transportadora pendente:", transportadoraIdPendente);
+        setTransportadoraSelecionada(transportadoraIdPendente);
+        setTransportadoraIdPendente(null);
+      }
+    }
+  }, [transportadoras, transportadoraIdPendente]);
+
   useEffect(() => {
     // Calcular totais quando pesos mudarem
     // pesosEixos agora está em TON (string com vírgula)
@@ -134,6 +163,31 @@ export default function PesagemPage() {
     return "danger";
   };
 
+  // Função para mapear situação do contrato para variante de cor do Badge
+  // Usa cores distintas das labels "Carregamento" (warning/amarelo) e "Contrato" (info/azul)
+  const getSituacaoBadgeVariant = (situacao: string | null | undefined): "success" | "warning" | "danger" | "info" | "default" => {
+    if (!situacao) return "default";
+    const situacaoLower = situacao.toLowerCase().trim();
+    if (situacaoLower === "contrato qtd") return "success"; // Verde (diferente de "Contrato" azul e "Carregamento" amarelo)
+    if (situacaoLower === "contrato valor") return "danger"; // Vermelho (diferente de "Contrato" azul e "Carregamento" amarelo)
+    if (situacaoLower === "contrato finalizado") return "default"; // Cinza (diferente de todas as outras)
+    return "default"; // Cinza para outros tipos
+  };
+
+  // Função para formatar produto_display que vem da query SQL (converte formato americano para brasileiro)
+  const formatProdutoDisplay = (display: string | null | undefined): string => {
+    if (!display) return "Sem produto";
+    // Converter formato "Produto (105.000 TON disponível)" para "Produto (105,000 TON disponível)"
+    // A query SQL retorna números com ponto como separador decimal, precisamos converter para vírgula
+    // Padrão: número seguido de ponto e 3 dígitos antes de espaço ou parêntese
+    return display.replace(/(\d+)\.(\d{3})(\s|\))/g, (match, intPart, decPart, after) => {
+      // Converter para formato brasileiro: "105.000" -> "105,000"
+      // Adicionar separador de milhar se necessário
+      const intFormatted = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+      return `${intFormatted},${decPart}${after}`;
+    });
+  };
+
   const calcularTara = useCallback(() => {
     // pesosEixos está em TON, retornar em kg
     const taraEixosArray = Object.keys(pesosEixos)
@@ -146,23 +200,37 @@ export default function PesagemPage() {
   // Buscar placas via API
   const searchPlacas = useCallback(async (query: string): Promise<string[]> => {
     try {
-      const response = await fetch(`/api/placas/search?q=${encodeURIComponent(query)}`);
+      console.log("searchPlacas - Buscando placas com query:", query);
+      const normalizedQuery = query.trim().toUpperCase();
+      const response = await fetch(`/api/placas/search?q=${encodeURIComponent(normalizedQuery)}`);
+      
+      if (!response.ok) {
+        console.error("searchPlacas - Erro na resposta HTTP:", response.status, response.statusText);
+        return [];
+      }
+      
       const data = await response.json();
+      console.log("searchPlacas - Resposta da API:", data);
 
       if (data.ok && data.items) {
+        console.log("searchPlacas - Items recebidos:", data.items);
         // Armazenar dados completos das placas no mapa
         const newMap = new Map(placaDataMap);
         data.items.forEach((item: PlacaData) => {
           newMap.set(item.placa, item);
+          console.log("searchPlacas - Armazenando placa no mapa:", item.placa, item);
         });
         setPlacaDataMap(newMap);
 
         // Retornar apenas as strings das placas para o autocomplete
-        return data.items.map((item: PlacaData) => item.placa);
+        const placas = data.items.map((item: PlacaData) => item.placa);
+        console.log("searchPlacas - Retornando placas:", placas);
+        return placas;
       }
+      console.warn("searchPlacas - Nenhum item retornado ou resposta não ok");
       return [];
     } catch (error) {
-      console.error("Erro ao buscar placas:", error);
+      console.error("searchPlacas - Erro ao buscar placas:", error);
       return [];
     }
   }, [placaDataMap]);
@@ -174,6 +242,7 @@ export default function PesagemPage() {
 
     console.log("Placa selecionada:", placa);
     console.log("PlacaDataMap:", placaDataMap);
+    console.log("Motoristas disponíveis:", motoristas);
 
     // Se a placa existe no mapa, auto-popular motorista e transportadora
     const placaData = placaDataMap.get(placa);
@@ -182,8 +251,22 @@ export default function PesagemPage() {
     if (placaData) {
       // Motorista: auto-preencher apenas se houver exatamente 1 vínculo
       if (placaData.motorista_ids && placaData.motorista_ids.length === 1) {
-        console.log("Auto-preenchendo motorista (vínculo único):", placaData.motorista_ids[0]);
-        setMotoristaSelecionado(String(placaData.motorista_ids[0]));
+        const motoristaId = String(placaData.motorista_ids[0]);
+        console.log("Auto-preenchendo motorista (vínculo único):", motoristaId);
+        console.log("Motoristas disponíveis no select:", motoristas.map(m => ({ value: m.value, label: m.label })));
+        
+        // Verificar se o motorista existe nas opções disponíveis
+        const motoristaExiste = motoristas.length > 1 && motoristas.some(m => m.value === motoristaId);
+        console.log("Motorista existe nas opções?", motoristaExiste, "Total de motoristas:", motoristas.length);
+        
+        if (motoristaExiste) {
+          setMotoristaSelecionado(motoristaId);
+          console.log("Motorista selecionado definido como:", motoristaId);
+        } else {
+          console.warn("Motorista ID", motoristaId, "não encontrado nas opções disponíveis. Armazenando como pendente...");
+          // Armazenar como pendente para ser aplicado quando os motoristas carregarem
+          setMotoristaIdPendente(motoristaId);
+        }
       } else if (placaData.motorista_ids && placaData.motorista_ids.length > 1) {
         console.log(`Placa tem ${placaData.motorista_ids.length} motoristas vinculados - usuário deve escolher`);
         // TODO: Futuramente, filtrar o select de motoristas para mostrar apenas os vinculados
@@ -191,8 +274,22 @@ export default function PesagemPage() {
 
       // Transportadora: auto-preencher apenas se houver exatamente 1 vínculo
       if (placaData.transportadora_ids && placaData.transportadora_ids.length === 1) {
-        console.log("Auto-preenchendo transportadora (vínculo único):", placaData.transportadora_ids[0]);
-        setTransportadoraSelecionada(String(placaData.transportadora_ids[0]));
+        const transportadoraId = String(placaData.transportadora_ids[0]);
+        console.log("Auto-preenchendo transportadora (vínculo único):", transportadoraId);
+        console.log("Transportadoras disponíveis no select:", transportadoras.map(t => ({ value: t.value, label: t.label })));
+        
+        // Verificar se a transportadora existe nas opções disponíveis
+        const transportadoraExiste = transportadoras.length > 1 && transportadoras.some(t => t.value === transportadoraId);
+        console.log("Transportadora existe nas opções?", transportadoraExiste, "Total de transportadoras:", transportadoras.length);
+        
+        if (transportadoraExiste) {
+          setTransportadoraSelecionada(transportadoraId);
+          console.log("Transportadora selecionada definida como:", transportadoraId);
+        } else {
+          console.warn("Transportadora ID", transportadoraId, "não encontrada nas opções disponíveis. Armazenando como pendente...");
+          // Armazenar como pendente para ser aplicado quando as transportadoras carregarem
+          setTransportadoraIdPendente(transportadoraId);
+        }
       } else if (placaData.transportadora_ids && placaData.transportadora_ids.length > 1) {
         console.log(`Placa tem ${placaData.transportadora_ids.length} transportadoras vinculadas - usuário deve escolher`);
         // TODO: Futuramente, filtrar o select de transportadoras para mostrar apenas as vinculadas
@@ -200,7 +297,7 @@ export default function PesagemPage() {
     } else {
       console.warn("Nenhum dado encontrado para placa:", placa);
     }
-  }, [placaDataMap]);
+  }, [placaDataMap, motoristas, transportadoras]);
 
   const handleStandBy = async () => {
     if (!placaSelecionada) {
@@ -281,15 +378,20 @@ export default function PesagemPage() {
           return Math.round(ton * 1000); // Converter TON para kg
         });
 
+      // Converter pesoTotal de kg para TON
+      const pesoTotalTon = pesoTotal / 1000;
+      const pesoLiquidoTon = pesoLiquido / 1000;
+      const finalEixosTon = finalEixosKg.map(kg => kg / 1000);
+
       const response = await fetch(`/api/carregamentos/${vendaSelecionada.id}/finalizar`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           idempotency_key: idempotencyKey,
           timestamp: new Date().toISOString(),
-          bruto_kg: pesoTotal,
-          liquido_kg: pesoLiquido,
-          final_eixos_kg: finalEixosKg,
+          bruto_kg: pesoTotalTon, // Na verdade é TON
+          liquido_kg: pesoLiquidoTon, // Na verdade é TON
+          final_eixos_kg: finalEixosTon, // Na verdade é TON
         }),
       });
 
@@ -583,7 +685,7 @@ export default function PesagemPage() {
               { value: "", label: "Selecione um produto" },
               ...data.items.map((p: any) => ({
                 value: String(p.produto_venda_id),
-                label: `${p.nome_produto} (${p.quantidade_disponivel.toFixed(3)} TON disponível)`,
+                label: `${p.nome_produto} (${formatTon(p.quantidade_disponivel)} TON disponível)`,
                 disabled: p.quantidade_disponivel <= 0
               }))
             ];
@@ -724,7 +826,7 @@ export default function PesagemPage() {
                       Produto
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">
-                      Líquido (kg)
+                      Líquido (TON)
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">
                       Status
@@ -766,7 +868,9 @@ export default function PesagemPage() {
                           {item.produto_nome || "-"}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                          {item.liquido_kg ? `${item.liquido_kg} kg` : "-"}
+                          {item.status === 'finalizado' && (item.liquido_ton || item.liquido_kg)
+                            ? formatTon(item.liquido_ton || (item.liquido_kg ? item.liquido_kg / 1000 : null))
+                            : "-"}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
                           <Badge variant={getStatusBadgeVariant(item.status)}>
@@ -901,7 +1005,6 @@ export default function PesagemPage() {
               <div className="flex gap-2">
                 <div className="flex-1">
                   <Input
-                    label="Buscar"
                     type="text"
                     value={buscaTexto}
                     onChange={(e) => setBuscaTexto(e.target.value)}
@@ -975,12 +1078,12 @@ export default function PesagemPage() {
                                 // Para carregamentos: mostrar apenas Placa, Tara e Motorista
                                 <>
                                   {item.placa && `Placa: ${item.placa}`}
-                                  {item.tara_total && ` | Tara: ${item.tara_total} kg`}
+                                  {item.tara_total && ` | Tara: ${formatTonWithUnit((item.tara_total || 0) / 1000)}`}
                                   {item.motorista_nome && ` | Motorista: ${item.motorista_nome}`}
                                 </>
                               ) : (
                                 // Para vendas: mostrar produto
-                                item.produto_display || "Sem produto"
+                                formatProdutoDisplay(item.produto_display)
                               )}
                             </p>
                             <p className="text-xs text-gray-500">
@@ -997,7 +1100,7 @@ export default function PesagemPage() {
                             </Badge>
                             {/* Situação do contrato abaixo da tag (apenas para vendas) */}
                             {!item.is_carregamento && item.situacao && (
-                              <Badge variant="default" className="text-xs">
+                              <Badge variant={getSituacaoBadgeVariant(item.situacao)} className="text-xs">
                                 {item.situacao}
                               </Badge>
                             )}
@@ -1344,7 +1447,7 @@ export default function PesagemPage() {
                 <div>
                   <span className="text-sm font-medium text-gray-700">Líquido:</span>
                   <p className="text-base font-semibold text-gray-900">
-                    {selectedCarregamentoModal.liquido_kg ? `${selectedCarregamentoModal.liquido_kg} kg` : "-"}
+                    {formatTonWithUnit(selectedCarregamentoModal.liquido_ton || (selectedCarregamentoModal.liquido_kg ? selectedCarregamentoModal.liquido_kg / 1000 : null))}
                   </p>
                 </div>
                 <div>

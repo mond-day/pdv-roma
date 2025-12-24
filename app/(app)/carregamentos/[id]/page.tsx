@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
 import { formatStatus, getStatusBadgeVariant } from "@/lib/utils/status";
+import { formatTon, formatTonWithUnit, gramasToTon, parseTon } from "@/lib/utils/weight";
 
 export default function CarregamentoDetailPage() {
   const router = useRouter();
@@ -18,8 +19,8 @@ export default function CarregamentoDetailPage() {
   const [showFinalizarModal, setShowFinalizarModal] = useState(false);
   const [cancelMotivo, setCancelMotivo] = useState("");
   const [pesos, setPesos] = useState({
-    bruto_kg: "",
-    liquido_kg: "",
+    bruto_ton: "",
+    liquido_ton: "",
   });
 
   useEffect(() => {
@@ -45,15 +46,16 @@ export default function CarregamentoDetailPage() {
   const handleFinalizar = async () => {
     if (!data) return;
 
-    const bruto = parseInt(pesos.bruto_kg) || 0;
-    const liquido = bruto > 0 ? (bruto - (data.tara_kg || 0)) : 0;
+    const brutoTon = parseTon(pesos.bruto_ton);
+    const taraTon = data.tara_ton || (data.tara_total ? gramasToTon(data.tara_total) : null);
+    const liquidoTon = brutoTon && taraTon ? (brutoTon - taraTon) : null;
 
-    if (bruto <= 0) {
+    if (!brutoTon || brutoTon <= 0) {
       alert("Por favor, preencha o peso bruto");
       return;
     }
     
-    if (liquido <= 0) {
+    if (!liquidoTon || liquidoTon <= 0) {
       alert("O peso líquido deve ser maior que zero. Verifique o peso bruto e a tara.");
       return;
     }
@@ -62,8 +64,8 @@ export default function CarregamentoDetailPage() {
     const payload = {
       idempotency_key: idempotencyKey,
       timestamp: new Date().toISOString(),
-      bruto_kg: bruto,
-      liquido_kg: liquido,
+      bruto_kg: brutoTon, // Na verdade é TON
+      liquido_kg: liquidoTon, // Na verdade é TON
       final_eixos_kg: [],
     };
 
@@ -161,19 +163,19 @@ export default function CarregamentoDetailPage() {
               <div>
                 <span className="text-sm font-medium text-gray-700 block mb-1">Tara:</span>
                 <div className="text-base font-semibold text-gray-900">
-                  {data.tara_kg ? `${data.tara_kg} kg` : "-"}
+                  {formatTonWithUnit(data.tara_ton || (data.tara_total ? gramasToTon(data.tara_total) : null))}
                 </div>
               </div>
               <div>
                 <span className="text-sm font-medium text-gray-700 block mb-1">Bruto:</span>
                 <div className="text-base font-semibold text-gray-900">
-                  {data.bruto_kg ? `${data.bruto_kg} kg` : "-"}
+                  {formatTonWithUnit(data.bruto_ton || (data.peso_final_total ? gramasToTon(data.peso_final_total) : null))}
                 </div>
               </div>
               <div>
                 <span className="text-sm font-medium text-gray-700 block mb-1">Líquido:</span>
                 <div className="text-base font-semibold text-gray-900">
-                  {data.liquido_kg ? `${data.liquido_kg} kg` : "-"}
+                  {formatTonWithUnit(data.liquido_ton || (data.liquido_kg ? data.liquido_kg / 1000 : null))}
                 </div>
               </div>
               {data.qtd_desejada_ton && (
@@ -227,23 +229,25 @@ export default function CarregamentoDetailPage() {
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
-                  label="Peso Bruto (kg)"
-                  type="number"
-                  value={pesos.bruto_kg}
+                  label="Peso Bruto (TON)"
+                  type="text"
+                  value={pesos.bruto_ton}
                   onChange={(e) => {
                     const bruto = e.target.value;
-                    const liquido = bruto ? (parseInt(bruto) - (data.tara_kg || 0)).toString() : "";
-                    setPesos({ bruto_kg: bruto, liquido_kg: liquido });
+                    const taraTon = data.tara_ton || (data.tara_total ? gramasToTon(data.tara_total) : null);
+                    const brutoTon = parseTon(bruto);
+                    const liquido = brutoTon && taraTon ? formatTon(brutoTon - taraTon) : "";
+                    setPesos({ bruto_ton: bruto, liquido_ton: liquido });
                   }}
-                  placeholder="Ex: 25000"
+                  placeholder="Ex: 25,500"
                 />
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Peso Líquido (kg)
+                    Peso Líquido (TON)
                   </label>
                   <input
                     type="text"
-                    value={pesos.bruto_kg ? (parseInt(pesos.bruto_kg) - (data.tara_kg || 0)).toString() : ""}
+                    value={pesos.liquido_ton}
                     readOnly
                     className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 cursor-not-allowed"
                     placeholder="Calculado automaticamente"
@@ -252,11 +256,6 @@ export default function CarregamentoDetailPage() {
                     Calculado automaticamente: Bruto - Tara
                   </p>
                 </div>
-                {pesos.bruto_kg && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    Calculado automaticamente: {parseInt(pesos.bruto_kg) - (data.tara_kg || 0)} kg
-                  </p>
-                )}
               </div>
               <div className="flex space-x-3">
                 <Button onClick={() => setShowFinalizarModal(true)}>
@@ -304,16 +303,16 @@ export default function CarregamentoDetailPage() {
             <div className="bg-gray-50 p-4 rounded-lg space-y-2">
               <div className="flex justify-between">
                 <span className="text-sm font-medium text-gray-700">Peso Bruto:</span>
-                <span className="text-sm font-semibold text-gray-900">{pesos.bruto_kg || 0} kg</span>
+                <span className="text-sm font-semibold text-gray-900">{formatTonWithUnit(parseTon(pesos.bruto_ton))}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm font-medium text-gray-700">Peso Líquido:</span>
-                <span className="text-sm font-semibold text-gray-900">{pesos.liquido_kg || 0} kg</span>
+                <span className="text-sm font-semibold text-gray-900">{formatTonWithUnit(parseTon(pesos.liquido_ton))}</span>
               </div>
-              {data.tara_kg && (
+              {(data.tara_ton || (data.tara_total ? gramasToTon(data.tara_total) : null)) && (
                 <div className="flex justify-between text-xs text-gray-600 pt-2 border-t">
                   <span>Tara:</span>
-                  <span>{data.tara_kg} kg</span>
+                  <span>{formatTonWithUnit(data.tara_ton || (data.tara_total ? gramasToTon(data.tara_total) : null))}</span>
                 </div>
               )}
             </div>

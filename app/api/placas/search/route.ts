@@ -16,11 +16,13 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const query = searchParams.get("q")?.trim().toUpperCase() || "";
+    const rawQuery = searchParams.get("q")?.trim() || "";
+    const query = rawQuery.toUpperCase();
 
     // Se não houver query, retornar últimas placas utilizadas
     if (!query) {
-      const result = await pool.query(
+      console.log("API /api/placas/search - Buscando todas as placas (sem query)");
+      let result = await pool.query(
         `
         SELECT DISTINCT
           p.placa,
@@ -39,6 +41,30 @@ export async function GET(request: NextRequest) {
         `
       );
 
+      console.log("API /api/placas/search - Total de placas encontradas na tabela placas (sem query):", result.rows.length);
+
+      // Se não encontrou resultados na tabela placas, buscar de carregamentos como fallback
+      if (result.rows.length === 0) {
+        console.log("API /api/placas/search - Nenhum resultado na tabela placas, buscando em carregamentos...");
+        result = await pool.query(
+          `
+          SELECT DISTINCT
+            c.placa,
+            ARRAY_AGG(DISTINCT c.motorista_id) FILTER (WHERE c.motorista_id IS NOT NULL) as motorista_ids,
+            ARRAY_AGG(DISTINCT m.nome) FILTER (WHERE m.nome IS NOT NULL) as motorista_nomes,
+            ARRAY_AGG(DISTINCT c.transportadora_id::text) FILTER (WHERE c.transportadora_id IS NOT NULL) as transportadora_ids,
+            ARRAY_AGG(DISTINCT t.nome) FILTER (WHERE t.nome IS NOT NULL) as transportadora_nomes
+          FROM carregamentos c
+          LEFT JOIN motoristas m ON m.id = c.motorista_id
+          LEFT JOIN transportadoras t ON t.id_gc = c.transportadora_id::text
+          GROUP BY c.placa
+          ORDER BY c.placa
+          LIMIT 20
+          `
+        );
+        console.log("API /api/placas/search - Total de placas encontradas na tabela carregamentos (sem query):", result.rows.length);
+      }
+
       return successResponse({
         ok: true,
         items: result.rows.map(row => ({
@@ -52,7 +78,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Buscar placas que correspondam à query
-    const result = await pool.query(
+    // Remover hífens e converter para maiúsculo para busca case-insensitive
+    const queryNormalized = query.replace(/-/g, '');
+    console.log("API /api/placas/search - Query recebida:", query, "Normalizada:", queryNormalized);
+    
+    // Primeiro, tentar buscar da tabela placas
+    let result = await pool.query(
       `
       SELECT DISTINCT
         p.placa,
@@ -65,23 +96,57 @@ export async function GET(request: NextRequest) {
       LEFT JOIN motoristas m ON m.id = pm.motorista_id
       LEFT JOIN placas_transportadoras pt ON pt.placa_id = p.id
       LEFT JOIN transportadoras t ON t.id_gc = pt.transportadora_id
-      WHERE REPLACE(UPPER(p.placa), '-', '') LIKE REPLACE($1, '-', '') || '%'
+      WHERE REPLACE(UPPER(p.placa), '-', '') LIKE $1 || '%'
       GROUP BY p.placa
       ORDER BY p.placa
       LIMIT 10
       `,
-      [query]
+      [queryNormalized]
     );
+
+    console.log("API /api/placas/search - Resultados da tabela placas:", result.rows.length);
+
+    // Se não encontrou resultados na tabela placas, buscar de carregamentos como fallback
+    if (result.rows.length === 0) {
+      console.log("API /api/placas/search - Nenhum resultado na tabela placas, buscando em carregamentos...");
+      result = await pool.query(
+        `
+        SELECT DISTINCT
+          c.placa,
+          ARRAY_AGG(DISTINCT c.motorista_id) FILTER (WHERE c.motorista_id IS NOT NULL) as motorista_ids,
+          ARRAY_AGG(DISTINCT m.nome) FILTER (WHERE m.nome IS NOT NULL) as motorista_nomes,
+          ARRAY_AGG(DISTINCT c.transportadora_id::text) FILTER (WHERE c.transportadora_id IS NOT NULL) as transportadora_ids,
+          ARRAY_AGG(DISTINCT t.nome) FILTER (WHERE t.nome IS NOT NULL) as transportadora_nomes
+        FROM carregamentos c
+        LEFT JOIN motoristas m ON m.id = c.motorista_id
+        LEFT JOIN transportadoras t ON t.id_gc = c.transportadora_id::text
+        WHERE REPLACE(UPPER(c.placa), '-', '') LIKE $1 || '%'
+        GROUP BY c.placa
+        ORDER BY c.placa
+        LIMIT 10
+        `,
+        [queryNormalized]
+      );
+      console.log("API /api/placas/search - Resultados da tabela carregamentos:", result.rows.length);
+    }
+
+    if (result.rows.length > 0) {
+      console.log("API /api/placas/search - Primeiro resultado:", result.rows[0]);
+    }
+
+    const items = result.rows.map(row => ({
+      placa: row.placa,
+      motorista_ids: row.motorista_ids || [],
+      motorista_nomes: row.motorista_nomes || [],
+      transportadora_ids: row.transportadora_ids || [],
+      transportadora_nomes: row.transportadora_nomes || [],
+    }));
+
+    console.log("API /api/placas/search - Items formatados:", items);
 
     return successResponse({
       ok: true,
-      items: result.rows.map(row => ({
-        placa: row.placa,
-        motorista_ids: row.motorista_ids || [],
-        motorista_nomes: row.motorista_nomes || [],
-        transportadora_ids: row.transportadora_ids || [],
-        transportadora_nomes: row.transportadora_nomes || [],
-      })),
+      items: items,
     });
   } catch (error) {
     console.error("Erro ao buscar placas:", error);

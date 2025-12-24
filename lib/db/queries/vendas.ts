@@ -22,7 +22,7 @@ export async function searchVendasECarregamentos(params: {
         c.id AS carregamento_id,
         c.placa,
         c.detalhes_produto AS produto_display,
-        'Carregamento (em espera)' AS tag_label,
+        'Carregamento' AS tag_label,
         'carreg_standby' AS tag_key,
         'carregamento' AS linha_tipo,
         TRUE AS is_carregamento,
@@ -115,7 +115,7 @@ export async function searchVendasECarregamentos(params: {
           FROM produtos_venda pv
           WHERE pv.venda_id = v.id_gc
         ) AS produto_display,
-        'Contrato (sem carregamento)' AS tag_label,
+        'Contrato' AS tag_label,
         'contrato' AS tag_key,
         'contrato' AS linha_tipo,
         FALSE AS is_carregamento,
@@ -148,11 +148,7 @@ export async function searchVendasECarregamentos(params: {
         c.id AS carregamento_id,
         c.placa,
         COALESCE(c.detalhes_produto, pv.nome_produto) AS produto_display,
-        CASE
-          WHEN c.status IN ('standby', 'stand-by') THEN 'Carregamento (em espera)'
-          WHEN c.status = 'pendente' THEN 'Carregamento (pendente)'
-          ELSE 'Carregamento'
-        END AS tag_label,
+        'Carregamento' AS tag_label,
         'carreg_tara' AS tag_key,
         'carregamento' AS linha_tipo,
         TRUE AS is_carregamento,
