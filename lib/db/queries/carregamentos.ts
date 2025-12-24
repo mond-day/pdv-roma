@@ -82,6 +82,7 @@ export async function listCarregamentos(params: {
     SELECT COUNT(*)
     FROM carregamentos c
     LEFT JOIN vendas v ON v.id_gc = c.id_gc
+    LEFT JOIN produtos_venda pv ON pv.id = c.produto_venda_id
     LEFT JOIN transportadoras t ON t.id_gc = c.transportadora_id::text
     LEFT JOIN motoristas m ON m.id = c.motorista_id
     ${whereClause}
@@ -93,7 +94,7 @@ export async function listCarregamentos(params: {
       c.placa,
       COALESCE(v.nome_cliente, c.cliente_nome, '') as cliente_nome,
       COALESCE(v.codigo, c.contrato_codigo, '') as contrato_codigo,
-      COALESCE(c.detalhes_produto, '') as produto_nome,
+      COALESCE(pv.nome_produto, '') as produto_nome,
       CASE
         WHEN c.peso_final_total IS NOT NULL AND c.tara_total IS NOT NULL
         THEN (c.peso_final_total - c.tara_total)
@@ -105,6 +106,7 @@ export async function listCarregamentos(params: {
       m.nome as motorista_nome
     FROM carregamentos c
     LEFT JOIN vendas v ON v.id_gc = c.id_gc
+    LEFT JOIN produtos_venda pv ON pv.id = c.produto_venda_id
     LEFT JOIN transportadoras t ON t.id_gc = c.transportadora_id::text
     LEFT JOIN motoristas m ON m.id = c.motorista_id
     LEFT JOIN integracoes_n8n i ON i.carregamento_id = c.id

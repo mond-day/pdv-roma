@@ -152,6 +152,11 @@ export function EixoInput({
           // Durante a digitação, permitir texto livre (sem formatação)
           const value = e.target.value;
           setLocalValue(value);
+
+          // Também chamar onChange do pai durante a digitação
+          if (props.onChange) {
+            props.onChange(e);
+          }
         }}
         {...props}
       />
