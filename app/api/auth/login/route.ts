@@ -5,8 +5,15 @@ import { verifyPassword } from "@/lib/auth/password";
 import { createSession, setSessionCookie } from "@/lib/auth/session";
 import { successResponse, errorResponse } from "@/lib/utils/response";
 import { createLog } from "@/lib/db/queries/logs";
+import { rateLimitLogin, clearRateLimit, getClientIdentifier } from "@/lib/middleware/rate-limit";
 
 export async function POST(request: NextRequest) {
+  // RATE LIMITING (Q8-A): 5 tentativas / 15 minutos
+  const rateLimitResponse = rateLimitLogin(request);
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
+
   try {
     const body = await request.json();
     const validated = LoginBodySchema.parse(body);
@@ -51,6 +58,10 @@ export async function POST(request: NextRequest) {
 
     const token = await createSession(sessionUser);
     await setSessionCookie(token);
+
+    // Limpar rate limit após login bem-sucedido
+    const identifier = getClientIdentifier(request);
+    clearRateLimit(identifier);
 
     await createLog({
       acao: "login",
