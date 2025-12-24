@@ -305,9 +305,6 @@ export default function HistoricoPage() {
                     Status
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
-                    Integração
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
                     Ações
                   </th>
                 </tr>
@@ -315,13 +312,13 @@ export default function HistoricoPage() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {loading ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                    <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
                       Carregando...
                     </td>
                   </tr>
                 ) : !data || !data.items || data.items.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                    <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
                       Nenhum carregamento encontrado com os filtros aplicados
                     </td>
                   </tr>
@@ -345,9 +342,6 @@ export default function HistoricoPage() {
                         {item.liquido_kg ? `${item.liquido_kg} kg` : "-"}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">{getStatusBadge(item.status)}</td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        {getIntegracaoBadge(item.integracao_status)}
-                      </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm space-x-2">
                         <Button
                           variant="ghost"

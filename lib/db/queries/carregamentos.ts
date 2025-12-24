@@ -168,10 +168,11 @@ export async function listCarregamentos(params: {
 export async function getCarregamentoById(id: number) {
   const result = await pool.query(
     `
-    SELECT 
+    SELECT
       c.*,
-      v.nome_cliente,
-      v.codigo as contrato_codigo,
+      c.data_carregamento::text as data_carregamento,
+      COALESCE(v.nome_cliente, c.cliente_nome) as nome_cliente,
+      COALESCE(v.codigo, c.contrato_codigo) as contrato_codigo,
       jsonb_build_object(
         'status', i.status,
         'ultima_mensagem', i.ultima_mensagem,
@@ -180,7 +181,7 @@ export async function getCarregamentoById(id: number) {
         'idempotency_key', i.idempotency_key
       ) as integracao
     FROM carregamentos c
-    LEFT JOIN vendas v ON v.id_gc = c.venda_id
+    LEFT JOIN vendas v ON v.id_gc = c.id_gc
     LEFT JOIN integracoes_n8n i ON i.carregamento_id = c.id
     WHERE c.id = $1
     `,
