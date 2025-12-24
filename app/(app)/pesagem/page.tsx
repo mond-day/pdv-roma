@@ -13,9 +13,18 @@ import { Modal } from "@/components/ui/Modal";
 import { EixoInput } from "@/components/ui/EixoInput";
 import { PesagemTotais } from "@/components/ui/PesagemTotais";
 import { SearchInput } from "@/components/ui/SearchInput";
+import { AutocompleteInput } from "@/components/ui/AutocompleteInput";
 import { formatStatus, getStatusBadgeVariant } from "@/lib/utils/status";
 
 type FasePesagem = "TARA" | "FINAL" | null;
+
+interface PlacaData {
+  placa: string;
+  motorista_id?: number;
+  motorista_nome?: string;
+  transportadora_id?: number | string;
+  transportadora_nome?: string;
+}
 
 export default function PesagemPage() {
   const router = useRouter();
@@ -48,6 +57,7 @@ export default function PesagemPage() {
   const [ticketHtml, setTicketHtml] = useState("");
   const [selectedCarregamentoModal, setSelectedCarregamentoModal] = useState<any>(null);
   const [showCarregamentoModal, setShowCarregamentoModal] = useState(false);
+  const [placaDataMap, setPlacaDataMap] = useState<Map<string, PlacaData>>(new Map());
 
   // Opções para selects
   const opcoesEixos = [
@@ -132,6 +142,47 @@ export default function PesagemPage() {
       .map((key) => parseFloat(String(pesosEixos[parseInt(key)]).replace(',', '.')) || 0);
     return taraEixosArray.reduce((acc, peso) => acc + peso, 0);
   }, [pesosEixos]);
+
+  // Buscar placas via API
+  const searchPlacas = useCallback(async (query: string): Promise<string[]> => {
+    try {
+      const response = await fetch(`/api/placas/search?q=${encodeURIComponent(query)}`);
+      const data = await response.json();
+
+      if (data.ok && data.items) {
+        // Armazenar dados completos das placas no mapa
+        const newMap = new Map(placaDataMap);
+        data.items.forEach((item: PlacaData) => {
+          newMap.set(item.placa, item);
+        });
+        setPlacaDataMap(newMap);
+
+        // Retornar apenas as strings das placas para o autocomplete
+        return data.items.map((item: PlacaData) => item.placa);
+      }
+      return [];
+    } catch (error) {
+      console.error("Erro ao buscar placas:", error);
+      return [];
+    }
+  }, [placaDataMap]);
+
+  // Handler quando uma placa é selecionada - auto-popular motorista e transportadora
+  const handlePlacaChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const placa = e.target.value;
+    setPlacaSelecionada(placa);
+
+    // Se a placa existe no mapa, auto-popular motorista e transportadora
+    const placaData = placaDataMap.get(placa);
+    if (placaData) {
+      if (placaData.motorista_id) {
+        setMotoristaSelecionado(String(placaData.motorista_id));
+      }
+      if (placaData.transportadora_id) {
+        setTransportadoraSelecionada(String(placaData.transportadora_id));
+      }
+    }
+  }, [placaDataMap]);
 
   const handleStandBy = async () => {
     if (!placaSelecionada) {
@@ -911,11 +962,14 @@ export default function PesagemPage() {
                 onChange={(e) => setProdutoSelecionado(e.target.value)}
                 disabled={fasePesagem === "FINAL" || (vendaSelecionada && (vendaSelecionada.status === "stand-by" || vendaSelecionada.status === "standby"))}
               />
-              <Select
+              <AutocompleteInput
                 label="Placa"
-                options={placas}
                 value={placaSelecionada}
-                onChange={(e) => setPlacaSelecionada(e.target.value)}
+                onChange={handlePlacaChange}
+                onSearch={searchPlacas}
+                placeholder="Digite para buscar placa (ex: ABC1234)"
+                minChars={3}
+                debounceMs={300}
                 disabled={fasePesagem === "FINAL" || (vendaSelecionada && (vendaSelecionada.status === "stand-by" || vendaSelecionada.status === "standby"))}
               />
               <Select

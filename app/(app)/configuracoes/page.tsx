@@ -19,6 +19,10 @@ const CONFIG_GROUPS = {
     title: "Integração n8n",
     keys: ["N8N_WEBHOOK_URL", "N8N_TOKEN"],
   },
+  webhooks: {
+    title: "Webhooks de Integração",
+    keys: [], // Não usa o sistema de keys padrão
+  },
   integracoes: {
     title: "Outras Integrações",
     keys: ["NIBO_TOKEN", "GC_TOKEN"],
@@ -37,6 +41,14 @@ export default function ConfiguracoesPage() {
   const [configs, setConfigs] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [fileName, setFileName] = useState<Record<string, string>>({});
+  const [webhooksConfig, setWebhooksConfig] = useState<any>({
+    busca_placa: "",
+    busca_codigo: "",
+    confirmacao: "",
+    cancelamento: "",
+    ticket: "",
+    duplicacao: "",
+  });
 
   useEffect(() => {
     fetch("/api/configuracoes")
@@ -51,7 +63,41 @@ export default function ConfiguracoesPage() {
       .catch((error) => {
         console.error("Erro ao buscar configurações:", error);
       });
+
+    // Carregar webhooks config
+    fetch("/api/webhooks-config")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.ok && data.config) {
+          setWebhooksConfig(data.config);
+        }
+      })
+      .catch((error) => {
+        console.error("Erro ao buscar webhooks config:", error);
+      });
   }, []);
+
+  const handleSaveWebhooks = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/webhooks-config", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(webhooksConfig),
+      });
+
+      if (res.ok) {
+        alert("Configurações de webhooks salvas com sucesso!");
+      } else {
+        const data = await res.json();
+        alert(data.message || "Erro ao salvar configurações de webhooks");
+      }
+    } catch (error) {
+      console.error("Erro ao salvar webhooks:", error);
+      alert("Erro ao salvar configurações de webhooks");
+    }
+    setIsLoading(false);
+  };
 
   const handleSave = async () => {
     setIsLoading(true);
@@ -129,6 +175,67 @@ export default function ConfiguracoesPage() {
           </Card>
         ) : (
           Object.entries(CONFIG_GROUPS).map(([groupKey, group]) => {
+            // Renderização especial para webhooks
+            if (groupKey === "webhooks") {
+              return (
+                <Card key={groupKey} title={group.title} className="bg-white">
+                  <div className="space-y-4">
+                    <Input
+                      label="Webhook Busca Placa"
+                      type="text"
+                      value={webhooksConfig.busca_placa || ""}
+                      onChange={(e) => setWebhooksConfig({ ...webhooksConfig, busca_placa: e.target.value })}
+                      placeholder="https://exemplo.com/webhook/busca-placa"
+                    />
+                    <Input
+                      label="Webhook Busca Código"
+                      type="text"
+                      value={webhooksConfig.busca_codigo || ""}
+                      onChange={(e) => setWebhooksConfig({ ...webhooksConfig, busca_codigo: e.target.value })}
+                      placeholder="https://exemplo.com/webhook/busca-codigo"
+                    />
+                    <Input
+                      label="Webhook Confirmação"
+                      type="text"
+                      value={webhooksConfig.confirmacao || ""}
+                      onChange={(e) => setWebhooksConfig({ ...webhooksConfig, confirmacao: e.target.value })}
+                      placeholder="https://exemplo.com/webhook/confirmacao"
+                    />
+                    <Input
+                      label="Webhook Cancelamento"
+                      type="text"
+                      value={webhooksConfig.cancelamento || ""}
+                      onChange={(e) => setWebhooksConfig({ ...webhooksConfig, cancelamento: e.target.value })}
+                      placeholder="https://exemplo.com/webhook/cancelamento"
+                    />
+                    <Input
+                      label="Webhook Ticket"
+                      type="text"
+                      value={webhooksConfig.ticket || ""}
+                      onChange={(e) => setWebhooksConfig({ ...webhooksConfig, ticket: e.target.value })}
+                      placeholder="https://exemplo.com/webhook/ticket"
+                    />
+                    <Input
+                      label="Webhook Duplicação"
+                      type="text"
+                      value={webhooksConfig.duplicacao || ""}
+                      onChange={(e) => setWebhooksConfig({ ...webhooksConfig, duplicacao: e.target.value })}
+                      placeholder="https://exemplo.com/webhook/duplicacao"
+                    />
+                    <div className="pt-4 border-t">
+                      <Button
+                        onClick={handleSaveWebhooks}
+                        isLoading={isLoading}
+                        className="w-full sm:w-auto"
+                      >
+                        Salvar Webhooks
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              );
+            }
+
             const groupConfigs = group.keys
               .map((key) => {
                 const config = getConfigByKey(key);
