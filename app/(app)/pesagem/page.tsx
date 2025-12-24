@@ -343,6 +343,16 @@ export default function PesagemPage() {
       // É uma VENDA sem carregamento - iniciar nova pesagem
       console.log("Venda selecionada (sem carregamento), ID:", item.id_gc);
 
+      // Validar situação do contrato
+      const situacao = item.situacao || "";
+      if (situacao !== "Contrato Qtd" && situacao !== "Contrato Valor") {
+        alert(
+          `Não é possível realizar carregamento para um contrato com situação "${situacao}".\n\n` +
+          `Apenas contratos com situação "Contrato Qtd" ou "Contrato Valor" podem ser carregados.`
+        );
+        return;
+      }
+
       setVendaSelecionada(item);
       setMostrarBusca(false);
       setFasePesagem("TARA"); // Iniciar com pesagem de TARA

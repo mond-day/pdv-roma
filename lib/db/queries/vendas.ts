@@ -113,7 +113,6 @@ export async function searchVendasECarregamentos(params: {
         v.data::timestamp AS ordenacao_data
       FROM vendas v
       WHERE EXISTS (SELECT 1 FROM vendas_alvo va WHERE va.venda_id = v.id_gc)
-        AND v.situacao IN ('Contrato Valor', 'Contrato Qtd')  -- Apenas contratos válidos para carregamento
         -- Excluir vendas que já têm carregamento ativo
         AND NOT EXISTS (
           SELECT 1 FROM carregamentos c
@@ -192,9 +191,8 @@ export async function listVendasDisponiveis() {
         WHERE pv.venda_id = v.id_gc
       ) AS produtos
     FROM vendas v
-    WHERE v.situacao IN ('Contrato Valor', 'Contrato Qtd')  -- Apenas contratos válidos para carregamento
-      -- Excluir vendas que já têm carregamento ativo
-      AND NOT EXISTS (
+    WHERE NOT EXISTS (
+        -- Excluir vendas que já têm carregamento ativo
         SELECT 1 FROM carregamentos c
         WHERE c.venda_id = v.id_gc
           AND c.status NOT IN ('concluido', 'finalizado', 'cancelado')
