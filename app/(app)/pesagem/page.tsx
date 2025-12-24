@@ -83,30 +83,36 @@ export default function PesagemPage() {
 
   useEffect(() => {
     // Calcular totais quando pesos mudarem
-    const total = Object.values(pesosEixos).reduce((acc, peso) => {
+    // pesosEixos agora está em TON (string com vírgula)
+    const totalTon = Object.values(pesosEixos).reduce((acc, peso) => {
       // Converter vírgula para ponto
       const num = parseFloat(String(peso).replace(',', '.')) || 0;
       return acc + num;
     }, 0);
-    setPesoTotal(total);
-    
+
+    // Converter para kg para exibição
+    const totalKg = totalTon * 1000;
+    setPesoTotal(totalKg);
+
     // Se está na fase TARA, atualizar tara_kg
-    if (fasePesagem === "TARA" && total > 0) {
-      setTaraKg(total);
+    if (fasePesagem === "TARA" && totalKg > 0) {
+      setTaraKg(totalKg);
     }
-    
+
     // Calcular líquido
     const tara = taraKg || calcularTara();
-    setPesoLiquido(tara > 0 ? total - tara : 0);
+    setPesoLiquido(tara > 0 ? totalKg - tara : 0);
 
-    // Calcular excessos
+    // Calcular excessos em TON
+    const limiteEixoTon = limiteEixo / 1000;
     const novosExcessos: Record<number, number> = {};
     Object.entries(pesosEixos).forEach(([eixo, peso]) => {
-      // Converter vírgula para ponto
-      const pesoNum = parseFloat(String(peso).replace(',', '.')) || 0;
-      const excesso = pesoNum - limiteEixo;
-      if (excesso > 0) {
-        novosExcessos[parseInt(eixo)] = excesso;
+      // Converter vírgula para ponto (peso já está em TON)
+      const pesoTon = parseFloat(String(peso).replace(',', '.')) || 0;
+      const excessoTon = pesoTon - limiteEixoTon;
+      if (excessoTon > 0) {
+        // Armazenar excesso em kg para compatibilidade
+        novosExcessos[parseInt(eixo)] = excessoTon * 1000;
       }
     });
     setExcessoEixos(novosExcessos);
@@ -129,10 +135,12 @@ export default function PesagemPage() {
   };
 
   const calcularTara = useCallback(() => {
+    // pesosEixos está em TON, retornar em kg
     const taraEixosArray = Object.keys(pesosEixos)
       .sort((a, b) => parseInt(a) - parseInt(b))
       .map((key) => parseFloat(String(pesosEixos[parseInt(key)]).replace(',', '.')) || 0);
-    return taraEixosArray.reduce((acc, peso) => acc + peso, 0);
+    const taraTon = taraEixosArray.reduce((acc, peso) => acc + peso, 0);
+    return taraTon * 1000; // Converter para kg
   }, [pesosEixos]);
 
   // Buscar placas via API
@@ -161,18 +169,27 @@ export default function PesagemPage() {
 
   // Handler quando uma placa é selecionada - auto-popular motorista e transportadora
   const handlePlacaChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const placa = e.target.value;
+    const placa = e.target.value.toUpperCase();
     setPlacaSelecionada(placa);
+
+    console.log("Placa selecionada:", placa);
+    console.log("PlacaDataMap:", placaDataMap);
 
     // Se a placa existe no mapa, auto-popular motorista e transportadora
     const placaData = placaDataMap.get(placa);
+    console.log("Dados da placa encontrados:", placaData);
+
     if (placaData) {
       if (placaData.motorista_id) {
+        console.log("Auto-preenchendo motorista:", placaData.motorista_id);
         setMotoristaSelecionado(String(placaData.motorista_id));
       }
       if (placaData.transportadora_id) {
+        console.log("Auto-preenchendo transportadora:", placaData.transportadora_id);
         setTransportadoraSelecionada(String(placaData.transportadora_id));
       }
+    } else {
+      console.warn("Nenhum dado encontrado para placa:", placa);
     }
   }, [placaDataMap]);
 
@@ -193,13 +210,16 @@ export default function PesagemPage() {
       return;
     }
 
-    // Converter tara de kg para TON
+    // Tara já está em kg, converter para TON
     const taraTotalTon = (taraTotal || (taraKg || 0)) / 1000;
-    
-    // Converter tara_eixos de objeto para array JSONB
+
+    // Converter tara_eixos de objeto para array JSONB (já está em TON, converter para kg)
     const taraEixosArray = Object.keys(pesosEixos)
       .sort((a, b) => parseInt(a) - parseInt(b))
-      .map((key) => parseFloat(String(pesosEixos[parseInt(key)]).replace(',', '.')) || 0);
+      .map((key) => {
+        const ton = parseFloat(String(pesosEixos[parseInt(key)]).replace(',', '.')) || 0;
+        return ton * 1000; // Converter TON para kg
+      });
 
     // Criar carregamento em stand-by
     const response = await fetch("/api/carregamentos", {
@@ -243,6 +263,15 @@ export default function PesagemPage() {
     // Se já existe carregamento, finalizar
     if (vendaSelecionada.id) {
       const idempotencyKey = `finalizar-${vendaSelecionada.id}-${Date.now()}`;
+
+      // Converter final_eixos_kg de TON para kg
+      const finalEixosKg = Object.keys(pesosEixos)
+        .sort((a, b) => parseInt(a) - parseInt(b))
+        .map((key) => {
+          const ton = parseFloat(String(pesosEixos[parseInt(key)]).replace(',', '.')) || 0;
+          return Math.round(ton * 1000); // Converter TON para kg
+        });
+
       const response = await fetch(`/api/carregamentos/${vendaSelecionada.id}/finalizar`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -251,9 +280,7 @@ export default function PesagemPage() {
           timestamp: new Date().toISOString(),
           bruto_kg: pesoTotal,
           liquido_kg: pesoLiquido,
-          final_eixos_kg: Object.keys(pesosEixos)
-            .sort((a, b) => parseInt(a) - parseInt(b))
-            .map((key) => parseFloat(pesosEixos[parseInt(key)]) || 0),
+          final_eixos_kg: finalEixosKg,
         }),
       });
 
@@ -355,33 +382,29 @@ export default function PesagemPage() {
             setQtdEixos(String(carregamento.eixos));
           }
 
-          // Preencher pesos de tara (já existentes)
-          if (carregamento.tara_eixos_kg && typeof carregamento.tara_eixos_kg === 'object') {
-            const taraEixos: Record<number, string> = {};
-            Object.keys(carregamento.tara_eixos_kg).forEach((key) => {
-              const eixoNum = parseInt(key);
-              if (!isNaN(eixoNum)) {
-                taraEixos[eixoNum] = String(carregamento.tara_eixos_kg[key]);
-              }
-            });
-            setPesosEixos(taraEixos);
+          // Definir tara_kg
+          if (carregamento.tara_total) {
+            setTaraKg(carregamento.tara_total);
           }
 
-          // Se já tem peso final, preencher (caso tenha sido parcialmente pesado)
-          if (carregamento.final_eixos_kg && typeof carregamento.final_eixos_kg === 'object') {
+          // Para carregamentos standby na fase FINAL:
+          // - Se já tem peso final, preencher os inputs
+          // - Se não tem peso final, deixar inputs vazios (usuário vai digitar peso final)
+          if (carregamento.final_eixos_kg && typeof carregamento.final_eixos_kg === 'object' && Object.keys(carregamento.final_eixos_kg).length > 0) {
+            // Já tem peso final, preencher - vem em kg, converter para TON
             const finalEixos: Record<number, string> = {};
             Object.keys(carregamento.final_eixos_kg).forEach((key) => {
               const eixoNum = parseInt(key);
               if (!isNaN(eixoNum)) {
-                finalEixos[eixoNum] = String(carregamento.final_eixos_kg[key]);
+                const kg = carregamento.final_eixos_kg[key];
+                const ton = (kg / 1000).toFixed(3).replace('.', ',');
+                finalEixos[eixoNum] = ton;
               }
             });
             setPesosEixos(finalEixos);
-          }
-
-          // Definir tara_kg
-          if (carregamento.tara_total) {
-            setTaraKg(carregamento.tara_total);
+          } else {
+            // Não tem peso final, deixar inputs vazios para digitação
+            setPesosEixos({});
           }
         } else {
           alert("Erro ao carregar dados do carregamento");
@@ -538,11 +561,14 @@ export default function PesagemPage() {
 
   // Carregar produtos quando selecionar uma venda
   useEffect(() => {
-    if (vendaSelecionada && vendaSelecionada.id_gc) {
-      fetch(`/api/produtos/disponiveis?venda_id=${vendaSelecionada.id_gc}`)
+    const vendaId = vendaSelecionada?.id_gc || vendaSelecionada?.venda_id || vendaSelecionada?.id;
+    if (vendaId) {
+      console.log("Carregando produtos para venda:", vendaId);
+      fetch(`/api/produtos/disponiveis?venda_id=${vendaId}`)
         .then((res) => res.json())
         .then((data) => {
-          if (data.ok && data.items) {
+          console.log("Produtos retornados:", data);
+          if (data.ok && data.items && data.items.length > 0) {
             const opcoes = [
               { value: "", label: "Selecione um produto" },
               ...data.items.map((p: any) => ({
@@ -551,6 +577,9 @@ export default function PesagemPage() {
               }))
             ];
             setProdutos(opcoes);
+            console.log("Produtos configurados:", opcoes);
+          } else {
+            console.warn("Nenhum produto disponível para esta venda");
           }
         })
         .catch((error) => {
@@ -1077,43 +1106,49 @@ export default function PesagemPage() {
                     const eixosArray = Array.from({ length: numEixos }, (_, i) => i + 1);
                     
                     return eixosArray.map((eixo) => {
-                      const peso = pesosEixos[eixo] || "";
+                      // peso está em TON (string com vírgula)
+                      const pesoAtual = pesosEixos[eixo] || "";
                       const excesso = excessoEixos[eixo] || 0;
-                      
+
                       // Lógica de desabilitar:
                       // - Se está em espera (standby): permitir edição apenas na fase FINAL (pesos finais)
                       // - Se não está em espera: permitir edição normalmente, exceto se já finalizou
                       const isStandby = vendaSelecionada && (vendaSelecionada.status === "stand-by" || vendaSelecionada.status === "standby");
-                      const isDisabled = isStandby 
-                        ? fasePesagem !== "FINAL" // Em espera: só pode editar na fase FINAL
-                        : vendaSelecionada && vendaSelecionada.status === "finalizado"; // Não em espera: não pode editar quando finalizado
-                      
-                      // Converter peso de kg (armazenado) para TON (exibição)
-                      // peso está em kg como string numérica
-                      const pesoKg = parseFloat(String(peso)) || 0;
-                      const pesoEmTon = pesoKg > 0 ? (pesoKg / 1000).toFixed(3).replace('.', ',') : "";
-                      
+                      const isDisabled = vendaSelecionada && vendaSelecionada.status === "finalizado"; // Não pode editar quando finalizado
+
                       // Converter limite de kg para TON para exibição
                       const limiteEixoTon = limiteEixo / 1000;
-                      
+
                       // Converter excesso de kg para TON
                       const excessoTon = excesso ? excesso / 1000 : undefined;
-                      
+
+                      // Na fase FINAL de um carregamento standby, precisamos mostrar campos vazios
+                      // para digitar o peso final, e a tara no tooltip
+                      let pesoParaExibir = pesoAtual;
+                      let taraInfo = "";
+
+                      if (fasePesagem === "FINAL" && isStandby && vendaSelecionada.tara_eixos_kg) {
+                        // Pegar tara do carregamento (vem em kg)
+                        const taraEixoKg = vendaSelecionada.tara_eixos_kg[eixo] || vendaSelecionada.tara_eixos_kg[String(eixo)];
+                        if (taraEixoKg) {
+                          const taraEixoTon = (taraEixoKg / 1000).toFixed(3).replace('.', ',');
+                          taraInfo = `Tara: ${taraEixoTon} TON`;
+                        }
+                      }
+
                       return (
                         <EixoInput
                           key={`eixo-${eixo}-${qtdEixos}-${fasePesagem}`}
-                          label={`Eixo ${eixo} (TON)`}
+                          label={`Eixo ${eixo} (TON)${taraInfo ? ` - ${taraInfo}` : ""}`}
                           eixoNumber={eixo}
-                          peso={pesoEmTon}
+                          peso={pesoParaExibir}
                           limiteEixo={limiteEixoTon}
                           excesso={excessoTon}
                           onChange={(e) => {
-                            // O valor já vem formatado do EixoInput (com vírgula)
-                            // Converter TON (entrada do usuário) para kg (armazenamento)
+                            // O valor vem formatado do EixoInput (com vírgula em TON)
+                            // Armazenar diretamente em TON
                             const valorTonStr = e.target.value;
-                            const valorTon = parseFloat(valorTonStr.replace(',', '.')) || 0;
-                            const valorKg = Math.round(valorTon * 1000); // Converter para kg e arredondar
-                            setPesosEixos({ ...pesosEixos, [eixo]: String(valorKg) });
+                            setPesosEixos({ ...pesosEixos, [eixo]: valorTonStr });
                           }}
                           disabled={isDisabled}
                           showTooltip={true}
