@@ -8,27 +8,29 @@ export async function getRelatorio(params: {
   let groupColumn: string;
   switch (params.groupBy) {
     case "cliente":
-      groupColumn = "v.nome_cliente";
+      groupColumn = "COALESCE(v.nome_cliente, c.cliente_nome)";
       break;
     case "transportadora":
-      groupColumn = "c.transportadora_id::text";
+      // Temporariamente desabilitado devido a incompatibilidade de schema
+      groupColumn = "'N/A'";
       break;
     case "motorista":
-      groupColumn = "c.motorista_id::text";
+      // Temporariamente desabilitado devido a incompatibilidade de schema
+      groupColumn = "'N/A'";
       break;
     default:
-      groupColumn = "v.nome_cliente";
+      groupColumn = "COALESCE(v.nome_cliente, c.cliente_nome)";
   }
 
   const result = await pool.query(
     `
-    SELECT 
+    SELECT
       ${groupColumn} as group_key,
       COUNT(*)::int as total_carregamentos,
-      COALESCE(SUM((c.peso_final_total - c.tara_total) * 1000), 0)::int as total_liquido_kg
+      COALESCE(SUM(c.liquido_kg), 0)::int as total_liquido_kg
     FROM carregamentos c
-    LEFT JOIN vendas v ON v.id_gc = c.venda_id
-    WHERE 
+    LEFT JOIN vendas v ON v.id_gc = c.id_gc
+    WHERE
       CAST(c.data_carregamento AS DATE) >= CAST($1 AS DATE)
       AND CAST(c.data_carregamento AS DATE) <= CAST($2 AS DATE)
       AND c.status = 'finalizado'
