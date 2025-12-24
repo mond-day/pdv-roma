@@ -97,6 +97,7 @@ ON CONFLICT DO NOTHING;
 -- tara_eixos e peso_final_eixos são JSONB (arrays)
 -- qtd_desejada é TEXT (formato: '25,500')
 -- detalhes_produto é TEXT (nome do produto)
+-- TODOS os carregamentos DEVEM ter motorista_id e transportadora_id
 INSERT INTO carregamentos (
   venda_id,
   id_gc,
@@ -113,19 +114,21 @@ INSERT INTO carregamentos (
   finalizado_em,
   qtd_desejada,
   detalhes_produto,
-  observacoes
+  observacoes,
+  motorista_id,
+  transportadora_id
 ) VALUES
-  ('GC-001', 'GC-001', 'ABC-1234', 'Cliente A Ltda', 'CT-001', 3, 'standby', CURRENT_DATE, 25000.000, '[8500, 8200, 8300]'::jsonb, NULL, NULL, NULL, '25,500', 'Soja', 'Carregamento em espera'),
-  ('GC-002', 'GC-002', 'XYZ-5678', 'Cliente B S.A', 'CT-002', 4, 'finalizado', CURRENT_DATE, 36300.000, '[9200, 9000, 9100, 9000]'::jsonb, 49200.000, '[12500, 12300, 12400, 12200]'::jsonb, CURRENT_TIMESTAMP, '30,000', 'Milho', 'Carregamento finalizado'),
-  ('GC-003', 'GC-003', 'DEF-9012', 'Cliente C EIRELI', 'CT-003', 2, 'standby', CURRENT_DATE, 15800.000, '[7800, 8000]'::jsonb, NULL, NULL, NULL, '20,000', 'Trigo', 'Aguardando pesagem final'),
-  ('GC-005', 'GC-005', 'JKL-7890', 'Cliente E Ltda', 'CT-005', 3, 'cancelado', CURRENT_DATE, 26400.000, '[8800, 8700, 8900]'::jsonb, NULL, NULL, NULL, '22,500', 'Milho', 'Cancelado por motivo X'),
-  ('GC-006', 'GC-006', 'MNO-2468', 'Cliente F S.A', 'CT-006', 4, 'standby', CURRENT_DATE, 38000.000, '[9500, 9400, 9600, 9500]'::jsonb, NULL, NULL, NULL, '28,000', 'Trigo', 'Em processo'),
-  ('GC-007', 'GC-007', 'PQR-1357', 'Cliente G EIRELI', 'CT-007', 5, 'finalizado', CURRENT_DATE, 54500.000, '[11000, 10800, 10900, 11000, 10800]'::jsonb, 74500.000, '[15000, 14800, 14900, 15000, 14800]'::jsonb, CURRENT_TIMESTAMP, '40,000', 'Soja', 'Carregamento completo'),
-  ('GC-009', 'GC-009', 'VWX-8642', 'Cliente I Ltda', 'CT-009', 4, 'finalizado', CURRENT_DATE, 39200.000, '[9800, 9700, 9900, 9800]'::jsonb, 54000.000, '[13500, 13400, 13600, 13500]'::jsonb, CURRENT_TIMESTAMP, '32,000', 'Trigo', 'Finalizado hoje'),
-  ('GC-010', 'GC-010', 'YZA-7531', 'Cliente J S.A', 'CT-010', 3, 'standby', CURRENT_DATE, 27000.000, '[9000, 8900, 9100]'::jsonb, NULL, NULL, NULL, '27,500', 'Soja', 'Em standby'),
+  ('GC-001', 'GC-001', 'ABC-1234', 'Cliente A Ltda', 'CT-001', 3, 'standby', CURRENT_DATE, 25000.000, '[8500, 8200, 8300]'::jsonb, NULL, NULL, NULL, '25,500', 'Soja', 'Carregamento em espera', 1, (SELECT id_gc FROM transportadoras WHERE nome LIKE 'Alpha%' LIMIT 1)::bigint),
+  ('GC-002', 'GC-002', 'XYZ-5678', 'Cliente B S.A', 'CT-002', 4, 'finalizado', CURRENT_DATE, 36300.000, '[9200, 9000, 9100, 9000]'::jsonb, 49200.000, '[12500, 12300, 12400, 12200]'::jsonb, CURRENT_TIMESTAMP, '30,000', 'Milho', 'Carregamento finalizado', 2, (SELECT id_gc FROM transportadoras WHERE nome LIKE 'Beta%' LIMIT 1)::bigint),
+  ('GC-003', 'GC-003', 'DEF-9012', 'Cliente C EIRELI', 'CT-003', 2, 'standby', CURRENT_DATE, 15800.000, '[7800, 8000]'::jsonb, NULL, NULL, NULL, '20,000', 'Trigo', 'Aguardando pesagem final', 1, (SELECT id_gc FROM transportadoras WHERE nome LIKE 'Alpha%' LIMIT 1)::bigint),
+  ('GC-005', 'GC-005', 'JKL-7890', 'Cliente E Ltda', 'CT-005', 3, 'cancelado', CURRENT_DATE, 26400.000, '[8800, 8700, 8900]'::jsonb, NULL, NULL, NULL, '22,500', 'Milho', 'Cancelado por motivo X', 2, (SELECT id_gc FROM transportadoras WHERE nome LIKE 'Beta%' LIMIT 1)::bigint),
+  ('GC-006', 'GC-006', 'MNO-2468', 'Cliente F S.A', 'CT-006', 4, 'standby', CURRENT_DATE, 38000.000, '[9500, 9400, 9600, 9500]'::jsonb, NULL, NULL, NULL, '28,000', 'Trigo', 'Em processo', 1, (SELECT id_gc FROM transportadoras WHERE nome LIKE 'Alpha%' LIMIT 1)::bigint),
+  ('GC-007', 'GC-007', 'PQR-1357', 'Cliente G EIRELI', 'CT-007', 5, 'finalizado', CURRENT_DATE, 54500.000, '[11000, 10800, 10900, 11000, 10800]'::jsonb, 74500.000, '[15000, 14800, 14900, 15000, 14800]'::jsonb, CURRENT_TIMESTAMP, '40,000', 'Soja', 'Carregamento completo', 2, (SELECT id_gc FROM transportadoras WHERE nome LIKE 'Beta%' LIMIT 1)::bigint),
+  ('GC-009', 'GC-009', 'VWX-8642', 'Cliente I Ltda', 'CT-009', 4, 'finalizado', CURRENT_DATE, 39200.000, '[9800, 9700, 9900, 9800]'::jsonb, 54000.000, '[13500, 13400, 13600, 13500]'::jsonb, CURRENT_TIMESTAMP, '32,000', 'Trigo', 'Finalizado hoje', 1, (SELECT id_gc FROM transportadoras WHERE nome LIKE 'Alpha%' LIMIT 1)::bigint),
+  ('GC-010', 'GC-010', 'YZA-7531', 'Cliente J S.A', 'CT-010', 3, 'standby', CURRENT_DATE, 27000.000, '[9000, 8900, 9100]'::jsonb, NULL, NULL, NULL, '27,500', 'Soja', 'Em standby', 2, (SELECT id_gc FROM transportadoras WHERE nome LIKE 'Beta%' LIMIT 1)::bigint),
   -- Carregamentos de outros dias (para histórico)
-  ('GC-004', 'GC-004', 'GHI-3456', 'Cliente D ME', 'CT-004', 5, 'finalizado', CURRENT_DATE - 1, 50500.000, '[10000, 9800, 9900, 10000, 9800]'::jsonb, 70500.000, '[14000, 13800, 13900, 14000, 13800]'::jsonb, CURRENT_TIMESTAMP - INTERVAL '1 day', '35,000', 'Soja', 'Finalizado ontem'),
-  ('GC-008', 'GC-008', 'STU-9753', 'Cliente H ME', 'CT-008', 2, 'standby', CURRENT_DATE - 2, 15200.000, '[7500, 7700]'::jsonb, NULL, NULL, NULL, '18,000', 'Milho', 'Aguardando desde anteontem');
+  ('GC-004', 'GC-004', 'GHI-3456', 'Cliente D ME', 'CT-004', 5, 'finalizado', CURRENT_DATE - 1, 50500.000, '[10000, 9800, 9900, 10000, 9800]'::jsonb, 70500.000, '[14000, 13800, 13900, 14000, 13800]'::jsonb, CURRENT_TIMESTAMP - INTERVAL '1 day', '35,000', 'Soja', 'Finalizado ontem', 1, (SELECT id_gc FROM transportadoras WHERE nome LIKE 'Alpha%' LIMIT 1)::bigint),
+  ('GC-008', 'GC-008', 'STU-9753', 'Cliente H ME', 'CT-008', 2, 'standby', CURRENT_DATE - 2, 15200.000, '[7500, 7700]'::jsonb, NULL, NULL, NULL, '18,000', 'Milho', 'Aguardando desde anteontem', 2, (SELECT id_gc FROM transportadoras WHERE nome LIKE 'Beta%' LIMIT 1)::bigint);
 
 -- Integrações fake (algumas pendentes, algumas com erro)
 -- Nota: Verificando se a tabela integracoes_n8n existe
@@ -197,13 +200,15 @@ INSERT INTO carregamentos (
   finalizado_em,
   qtd_desejada,
   detalhes_produto,
-  observacoes
+  observacoes,
+  motorista_id,
+  transportadora_id
 ) VALUES
-  ('GC-011', 'GC-011', 'BCC-1111', 'Cliente K Ltda', 'CT-011', 4, 'standby', CURRENT_DATE - 3, 36800.000, '[9200, 9100, 9300, 9200]'::jsonb, NULL, NULL, NULL, '28,000', 'Milho', 'Aguardando há 3 dias'),
-  ('GC-012', 'GC-012', 'CDD-2222', 'Cliente L S.A', 'CT-012', 3, 'finalizado', CURRENT_DATE - 4, 25800.000, '[8600, 8500, 8700]'::jsonb, 36000.000, '[12000, 11900, 12100]'::jsonb, CURRENT_TIMESTAMP - INTERVAL '4 days', '24,000', 'Trigo', 'Finalizado há 4 dias'),
-  ('GC-013', 'GC-013', 'DEE-3333', 'Cliente M EIRELI', 'CT-013', 2, 'standby', CURRENT_DATE - 5, 16200.000, '[8000, 8200]'::jsonb, NULL, NULL, NULL, '19,500', 'Soja', 'Aguardando há 5 dias'),
-  ('GC-014', 'GC-014', 'EFF-4444', 'Cliente N ME', 'CT-014', 5, 'finalizado', CURRENT_DATE - 6, 50500.000, '[10200, 10000, 10100, 10200, 10000]'::jsonb, 70500.000, '[14200, 14000, 14100, 14200, 14000]'::jsonb, CURRENT_TIMESTAMP - INTERVAL '6 days', '33,000', 'Milho', 'Finalizado há 6 dias'),
-  ('GC-015', 'GC-015', 'FGG-5555', 'Cliente O Ltda', 'CT-015', 3, 'cancelado', CURRENT_DATE - 7, 25200.000, '[8400, 8300, 8500]'::jsonb, NULL, NULL, NULL, '21,000', 'Trigo', 'Cancelado há 7 dias');
+  ('GC-011', 'GC-011', 'BCC-1111', 'Cliente K Ltda', 'CT-011', 4, 'standby', CURRENT_DATE - 3, 36800.000, '[9200, 9100, 9300, 9200]'::jsonb, NULL, NULL, NULL, '28,000', 'Milho', 'Aguardando há 3 dias', 1, (SELECT id_gc FROM transportadoras WHERE nome LIKE 'Alpha%' LIMIT 1)::bigint),
+  ('GC-012', 'GC-012', 'CDD-2222', 'Cliente L S.A', 'CT-012', 3, 'finalizado', CURRENT_DATE - 4, 25800.000, '[8600, 8500, 8700]'::jsonb, 36000.000, '[12000, 11900, 12100]'::jsonb, CURRENT_TIMESTAMP - INTERVAL '4 days', '24,000', 'Trigo', 'Finalizado há 4 dias', 2, (SELECT id_gc FROM transportadoras WHERE nome LIKE 'Beta%' LIMIT 1)::bigint),
+  ('GC-013', 'GC-013', 'DEE-3333', 'Cliente M EIRELI', 'CT-013', 2, 'standby', CURRENT_DATE - 5, 16200.000, '[8000, 8200]'::jsonb, NULL, NULL, NULL, '19,500', 'Soja', 'Aguardando há 5 dias', 1, (SELECT id_gc FROM transportadoras WHERE nome LIKE 'Alpha%' LIMIT 1)::bigint),
+  ('GC-014', 'GC-014', 'EFF-4444', 'Cliente N ME', 'CT-014', 5, 'finalizado', CURRENT_DATE - 6, 50500.000, '[10200, 10000, 10100, 10200, 10000]'::jsonb, 70500.000, '[14200, 14000, 14100, 14200, 14000]'::jsonb, CURRENT_TIMESTAMP - INTERVAL '6 days', '33,000', 'Milho', 'Finalizado há 6 dias', 2, (SELECT id_gc FROM transportadoras WHERE nome LIKE 'Beta%' LIMIT 1)::bigint),
+  ('GC-015', 'GC-015', 'FGG-5555', 'Cliente O Ltda', 'CT-015', 3, 'cancelado', CURRENT_DATE - 7, 25200.000, '[8400, 8300, 8500]'::jsonb, NULL, NULL, NULL, '21,000', 'Trigo', 'Cancelado há 7 dias', 1, (SELECT id_gc FROM transportadoras WHERE nome LIKE 'Alpha%' LIMIT 1)::bigint);
 
 -- Logs fake (auditoria)
 -- Nota: logs_acao usa user_id (UUID) e detalhes é TEXT
