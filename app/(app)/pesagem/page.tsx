@@ -243,118 +243,125 @@ export default function PesagemPage() {
       return [];
     }
 
-    const hoje = new Date().toISOString().split("T")[0];
     const textoBusca = query.trim();
-    
+
     try {
-      // Buscar nos últimos 7 dias para ter mais resultados
-      const dataInicio = new Date();
-      dataInicio.setDate(dataInicio.getDate() - 7);
-      const dataInicioStr = dataInicio.toISOString().split("T")[0];
-    
-      // Buscar por cliente usando range de datas (últimos 7 dias)
-      console.log("Buscando por cliente:", textoBusca, "de", dataInicioStr, "até", hoje);
-      const resCliente = await fetch(`/api/carregamentos?date=${dataInicioStr}&dateFim=${hoje}&cliente=${encodeURIComponent(textoBusca)}&pageSize=100`);
-      if (!resCliente.ok) {
-        console.error("Erro na busca por cliente:", resCliente.status, await resCliente.text());
+      // Busca unificada de vendas + carregamentos (como no Appsmith)
+      console.log("Buscando vendas e carregamentos:", textoBusca);
+      const response = await fetch(`/api/vendas/search?q=${encodeURIComponent(textoBusca)}`);
+
+      if (!response.ok) {
+        console.error("Erro na busca:", response.status, await response.text());
         return [];
       }
-      const dataCliente = await resCliente.json();
-      console.log("Resultados por cliente:", dataCliente);
-      
-        // Depois buscar por placa usando range de datas (últimos 7 dias)
-      console.log("Buscando por placa:", textoBusca, "de", dataInicioStr, "até", hoje);
-      const resPlaca = await fetch(`/api/carregamentos?date=${dataInicioStr}&dateFim=${hoje}&placa=${encodeURIComponent(textoBusca)}&pageSize=100`);
-      if (!resPlaca.ok) {
-        console.error("Erro na busca por placa:", resPlaca.status);
-        // Continuar mesmo se uma busca falhar
+
+      const data = await response.json();
+      console.log("Resultados da busca unificada:", data);
+
+      if (data.ok && data.items) {
+        console.log(`✅ Encontrados ${data.items.length} itens (vendas + carregamentos)`);
+        return data.items;
       }
-      const dataPlaca = await resPlaca.json();
-      console.log("Resultados por placa:", dataPlaca);
-      
-            // Combinar resultados e remover duplicatas usando Map para garantir unicidade
-            const todos = [...(dataCliente.ok ? dataCliente.items : []), ...(dataPlaca.ok ? dataPlaca.items : [])];
-            const mapUnicos = new Map();
-            todos.forEach((item: any) => {
-              if (item.id && !mapUnicos.has(item.id)) {
-                mapUnicos.set(item.id, item);
-              }
-            });
-            const unicos = Array.from(mapUnicos.values());
-            console.log("Itens únicos após remoção de duplicatas:", unicos.length);
-            
-            // Filtrar também por contrato se necessário
-            const textoLower = textoBusca.toLowerCase();
-            const filtrados = unicos.filter((item: any) => 
-              item.cliente_nome?.toLowerCase().includes(textoLower) ||
-              item.placa?.toLowerCase().includes(textoLower) ||
-              item.contrato_codigo?.toLowerCase().includes(textoLower)
-            );
-            console.log("Itens após filtro de texto:", filtrados.length);
-            
-           // Filtrar apenas carregamentos em espera (stand-by) - remover finalizados e cancelados
-           // Normalizar status para comparação
-           const apenasEmEspera = filtrados.filter((item: any) => {
-             const statusNorm = (item.status || "").toLowerCase().trim();
-             return statusNorm === "stand-by" || statusNorm === "standby";
-           });
-           console.log("Itens em espera:", apenasEmEspera.length);
-      
-      // Garantir que não há duplicatas finais antes de retornar
-      const mapFinal = new Map();
-      apenasEmEspera.forEach((item: any) => {
-        if (item.id && !mapFinal.has(item.id)) {
-          mapFinal.set(item.id, item);
-        }
-      });
-      
-      // Retornar todos os itens únicos (sem paginação aqui, será feita na exibição)
-      return Array.from(mapFinal.values());
+
+      return [];
     } catch (error) {
-            console.error("Erro na busca:", error);
+      console.error("Erro na busca:", error);
       return [];
     }
-  }, [buscaPage, buscaPageSize]);
+  }, []);
 
-  const handleSelecionarVenda = useCallback((venda: any) => {
-    setVendaSelecionada(venda);
-    setMostrarBusca(false);
-    // Se está em espera, só pode inserir pesos finais
-    if (venda.status === "stand-by" || venda.status === "standby") {
-      setFasePesagem("FINAL");
+  const handleSelecionarVenda = useCallback(async (item: any) => {
+    console.log("Item selecionado:", item);
+
+    // Verificar se é carregamento ou venda
+    if (item.is_carregamento) {
+      // É um CARREGAMENTO em andamento - carregar dados completos
+      console.log("Carregamento selecionado, ID:", item.carregamento_id);
+
+      try {
+        const response = await fetch(`/api/carregamentos/${item.carregamento_id}`);
+        const data = await response.json();
+
+        if (data.ok && data.item) {
+          const carregamento = data.item;
+          console.log("Dados completos do carregamento:", carregamento);
+
+          setVendaSelecionada(carregamento);
+          setMostrarBusca(false);
+          setFasePesagem("FINAL"); // Ir direto para pesagem FINAL
+
+          // Preencher campos com dados do carregamento
+          if (carregamento.placa) setPlacaSelecionada(carregamento.placa);
+          if (carregamento.motorista_id) setMotoristaSelecionado(String(carregamento.motorista_id));
+          if (carregamento.transportadora_id) setTransportadoraSelecionada(String(carregamento.transportadora_id));
+          if (carregamento.qtd_desejada) setQtdDesejada(carregamento.qtd_desejada);
+          if (carregamento.detalhes_produto) setDetalhesProduto(carregamento.detalhes_produto);
+          if (carregamento.observacoes) setObservacoes(carregamento.observacoes);
+
+          // Definir quantidade de eixos
+          if (carregamento.eixos) {
+            setQtdEixos(String(carregamento.eixos));
+          }
+
+          // Preencher pesos de tara (já existentes)
+          if (carregamento.tara_eixos_kg && typeof carregamento.tara_eixos_kg === 'object') {
+            const taraEixos: Record<number, string> = {};
+            Object.keys(carregamento.tara_eixos_kg).forEach((key) => {
+              const eixoNum = parseInt(key);
+              if (!isNaN(eixoNum)) {
+                taraEixos[eixoNum] = String(carregamento.tara_eixos_kg[key]);
+              }
+            });
+            setPesosEixos(taraEixos);
+          }
+
+          // Se já tem peso final, preencher (caso tenha sido parcialmente pesado)
+          if (carregamento.final_eixos_kg && typeof carregamento.final_eixos_kg === 'object') {
+            const finalEixos: Record<number, string> = {};
+            Object.keys(carregamento.final_eixos_kg).forEach((key) => {
+              const eixoNum = parseInt(key);
+              if (!isNaN(eixoNum)) {
+                finalEixos[eixoNum] = String(carregamento.final_eixos_kg[key]);
+              }
+            });
+            setPesosEixos(finalEixos);
+          }
+
+          // Definir tara_kg
+          if (carregamento.tara_total) {
+            setTaraKg(carregamento.tara_total);
+          }
+        } else {
+          alert("Erro ao carregar dados do carregamento");
+        }
+      } catch (error) {
+        console.error("Erro ao buscar carregamento:", error);
+        alert("Erro ao carregar dados do carregamento");
+      }
     } else {
-      setFasePesagem("TARA");
-    }
-    // Preencher campos com dados da venda
-    if (venda.placa) setPlacaSelecionada(venda.placa);
-    if (venda.cliente_nome) {
-      // Cliente já está no contexto
-    }
-    // Definir quantidade de eixos se disponível
-    if (venda.eixos) {
-      setQtdEixos(String(venda.eixos));
-    }
-    // Preencher pesos dos eixos se disponíveis
-    if (venda.tara_eixos_kg && typeof venda.tara_eixos_kg === 'object') {
-      const taraEixos: Record<number, string> = {};
-      Object.keys(venda.tara_eixos_kg).forEach((key) => {
-        const eixoNum = parseInt(key);
-        if (!isNaN(eixoNum)) {
-          taraEixos[eixoNum] = String(venda.tara_eixos_kg[key]);
-        }
-      });
-      setPesosEixos(taraEixos);
-    }
-    // Preencher pesos finais se disponíveis e estiver em espera
-    if ((venda.status === "stand-by" || venda.status === "standby") && venda.final_eixos_kg && typeof venda.final_eixos_kg === 'object') {
-      const finalEixos: Record<number, string> = {};
-      Object.keys(venda.final_eixos_kg).forEach((key) => {
-        const eixoNum = parseInt(key);
-        if (!isNaN(eixoNum)) {
-          finalEixos[eixoNum] = String(venda.final_eixos_kg[key]);
-        }
-      });
-      setPesosEixos(finalEixos);
+      // É uma VENDA sem carregamento - iniciar nova pesagem
+      console.log("Venda selecionada (sem carregamento), ID:", item.id_gc);
+
+      setVendaSelecionada(item);
+      setMostrarBusca(false);
+      setFasePesagem("TARA"); // Iniciar com pesagem de TARA
+
+      // Limpar campos de pesagem
+      setPesosEixos({});
+      setQtdEixos("");
+      setPlacaSelecionada("");
+      setMotoristaSelecionado("");
+      setTransportadoraSelecionada("");
+      setQtdDesejada("");
+      setDetalhesProduto("");
+      setObservacoes("");
+      setTaraKg(null);
+
+      // Preencher apenas dados básicos da venda (se disponíveis)
+      // Produto pode vir preenchido
+      if (item.produto_display) {
+        setDetalhesProduto(item.produto_display);
+      }
     }
   }, []);
 
@@ -729,9 +736,9 @@ export default function PesagemPage() {
           </Card>
         )}
 
-        {/* Busca de Vendas */}
+        {/* Busca de Vendas e Carregamentos */}
         {!mostrarLista && mostrarBusca && (
-          <Card title="🔍 Buscar Venda" className="bg-white">
+          <Card title="🔍 Buscar Venda ou Carregamento" className="bg-white">
             <div className="space-y-4">
               <div className="flex gap-2">
                 <div className="flex-1">
@@ -740,7 +747,7 @@ export default function PesagemPage() {
                     type="text"
                     value={buscaTexto}
                     onChange={(e) => setBuscaTexto(e.target.value)}
-                    placeholder="Digite nome do cliente, placa ou venda..."
+                    placeholder="Digite cliente, placa, código de venda ou ID..."
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         handleSearchWrapper(buscaTexto);
@@ -774,36 +781,63 @@ export default function PesagemPage() {
               )}
               {!searchInputAtivo && resultadosBusca.length === 0 && buscaTexto.trim().length >= 2 && (
                 <div className="mt-4 text-center text-gray-500">
-                  Nenhum resultado encontrado. Verifique se há carregamentos em espera (stand-by) com os critérios informados.
+                  <p>Nenhum resultado encontrado.</p>
+                  <p className="text-sm mt-1">Busque por: nome do cliente, placa, código de venda ou ID de carregamento.</p>
                 </div>
               )}
               {!searchInputAtivo && resultadosBusca.length > 0 && (
                 <div className="space-y-2 mt-4">
-                  {resultadosBusca.slice((buscaPage - 1) * buscaPageSize, buscaPage * buscaPageSize).map((venda) => (
-                    <Card
-                      key={venda.id}
-                      clickable
-                      onClick={() => handleSelecionarVenda(venda)}
-                      className="p-4"
-                    >
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <p className="font-semibold text-gray-900">
-                            Carregamento #{venda.id} - {venda.cliente_nome}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            {venda.produto_nome || "Sem produto"} | Placa: {venda.placa}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {new Date(venda.data_carregamento).toLocaleDateString("pt-BR")}
-                          </p>
+                  {resultadosBusca.slice((buscaPage - 1) * buscaPageSize, buscaPage * buscaPageSize).map((item) => {
+                    // Gerar key único baseado no tipo de item
+                    const itemKey = item.is_carregamento
+                      ? `carreg-${item.carregamento_id}`
+                      : `venda-${item.id_gc}`;
+
+                    // Determinar variante do badge baseado no tipo
+                    const badgeVariant = item.is_carregamento ? "warning" : "info";
+
+                    return (
+                      <Card
+                        key={itemKey}
+                        clickable
+                        onClick={() => handleSelecionarVenda(item)}
+                        className="p-4 hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="font-semibold text-gray-900">
+                                {item.is_carregamento
+                                  ? `Carregamento #${item.carregamento_id}`
+                                  : `Contrato ${item.codigo}`} - {item.nome_cliente}
+                              </p>
+                            </div>
+                            <p className="text-sm text-gray-600">
+                              {item.produto_display || "Sem produto"}
+                              {item.placa && ` | Placa: ${item.placa}`}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {item.data
+                                ? new Date(item.data).toLocaleDateString("pt-BR")
+                                : item.data_carregamento
+                                  ? new Date(item.data_carregamento).toLocaleDateString("pt-BR")
+                                  : "-"}
+                            </p>
+                          </div>
+                          <div className="flex flex-col items-end gap-1">
+                            <Badge variant={badgeVariant}>
+                              {item.tag_label || (item.is_carregamento ? "Carregamento" : "Contrato")}
+                            </Badge>
+                            {item.is_carregamento && (
+                              <Badge variant={getStatusBadgeVariant(item.status_item)}>
+                                {formatStatus(item.status_item)}
+                              </Badge>
+                            )}
+                          </div>
                         </div>
-                        <Badge variant={getStatusBadgeVariant(venda.status)}>
-                          {formatStatus(venda.status)}
-                        </Badge>
-                      </div>
-                    </Card>
-                  ))}
+                      </Card>
+                    );
+                  })}
                   {buscaTotal > buscaPageSize && (
                     <div className="flex items-center justify-between pt-4 border-t">
                       <div className="text-sm text-gray-700">
