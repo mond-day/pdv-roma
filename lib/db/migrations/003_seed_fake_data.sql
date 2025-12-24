@@ -6,19 +6,26 @@
 -- Transportadoras fake (precisa existir antes de vendas e carregamentos)
 INSERT INTO transportadoras (
   id_gc,
-  nome
+  nome,
+  cpf_cnpj,
+  tipo_pessoa,
+  email,
+  telefone,
+  cadastrado_em,
+  modificado_em
 ) VALUES
-  ('TRANS-001', 'Transportadora Alpha Ltda'),
-  ('TRANS-002', 'Transportadora Beta S.A')
+  ('TRANS-001', 'Transportadora Alpha Ltda', '12.345.678/0001-90', 'PJ', 'contato@alpha.com', '(65)3333-4444', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('TRANS-002', 'Transportadora Beta S.A', '98.765.432/0001-10', 'PJ', 'contato@beta.com', '(65)3333-5555', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 ON CONFLICT (id_gc) DO NOTHING;
 
 -- Motoristas fake (precisa existir antes dos carregamentos)
 INSERT INTO motoristas (
   nome,
+  cpf,
   transportadora_id
 ) VALUES
-  ('João Silva', 'TRANS-001'),
-  ('Maria Santos', 'TRANS-002')
+  ('João Silva', '123.456.789-01', 'TRANS-001'),
+  ('Maria Santos', '987.654.321-02', 'TRANS-002')
 ON CONFLICT DO NOTHING;
 
 -- Vendas/Contratos fake (precisa existir antes dos carregamentos)
@@ -58,36 +65,40 @@ INSERT INTO produtos_venda (
   venda_id,
   produto_id,
   nome_produto,
-  quantidade
+  quantidade,
+  valor_unitario,
+  valor_total
 ) VALUES
-  ('GC-001', 'PROD-001', 'Soja', 100.0),
-  ('GC-002', 'PROD-002', 'Milho', 120.0),
-  ('GC-003', 'PROD-003', 'Trigo', 80.0),
-  ('GC-004', 'PROD-001', 'Soja', 140.0),
-  ('GC-005', 'PROD-002', 'Milho', 90.0),
-  ('GC-006', 'PROD-003', 'Trigo', 112.0),
-  ('GC-007', 'PROD-001', 'Soja', 160.0),
-  ('GC-008', 'PROD-002', 'Milho', 72.0),
-  ('GC-009', 'PROD-003', 'Trigo', 128.0),
-  ('GC-010', 'PROD-001', 'Soja', 110.0),
-  ('GC-011', 'PROD-002', 'Milho', 96.0),
-  ('GC-012', 'PROD-003', 'Trigo', 76.0),
-  ('GC-013', 'PROD-001', 'Soja', 132.0),
-  ('GC-014', 'PROD-002', 'Milho', 88.0),
-  ('GC-015', 'PROD-003', 'Trigo', 84.0),
+  ('GC-001', 'PROD-001', 'Soja', 100.0, 85.50, 8550.00),
+  ('GC-002', 'PROD-002', 'Milho', 120.0, 62.30, 7476.00),
+  ('GC-003', 'PROD-003', 'Trigo', 80.0, 95.00, 7600.00),
+  ('GC-004', 'PROD-001', 'Soja', 140.0, 85.50, 11970.00),
+  ('GC-005', 'PROD-002', 'Milho', 90.0, 62.30, 5607.00),
+  ('GC-006', 'PROD-003', 'Trigo', 112.0, 95.00, 10640.00),
+  ('GC-007', 'PROD-001', 'Soja', 160.0, 85.50, 13680.00),
+  ('GC-008', 'PROD-002', 'Milho', 72.0, 62.30, 4485.60),
+  ('GC-009', 'PROD-003', 'Trigo', 128.0, 95.00, 12160.00),
+  ('GC-010', 'PROD-001', 'Soja', 110.0, 85.50, 9405.00),
+  ('GC-011', 'PROD-002', 'Milho', 96.0, 62.30, 5980.80),
+  ('GC-012', 'PROD-003', 'Trigo', 76.0, 95.00, 7220.00),
+  ('GC-013', 'PROD-001', 'Soja', 132.0, 85.50, 11286.00),
+  ('GC-014', 'PROD-002', 'Milho', 88.0, 62.30, 5482.40),
+  ('GC-015', 'PROD-003', 'Trigo', 84.0, 95.00, 7980.00),
   -- Produtos dos novos contratos
-  ('GC-016', 'PROD-001', 'Soja', 150.0),
-  ('GC-017', 'PROD-002', 'Milho', 130.0),
-  ('GC-018', 'PROD-003', 'Trigo', 95.0),
-  ('GC-019', 'PROD-001', 'Soja', 180.0),
-  ('GC-020', 'PROD-002', 'Milho', 105.0)
+  ('GC-016', 'PROD-001', 'Soja', 150.0, 85.50, 12825.00),
+  ('GC-017', 'PROD-002', 'Milho', 130.0, 62.30, 8099.00),
+  ('GC-018', 'PROD-003', 'Trigo', 95.0, 95.00, 9025.00),
+  ('GC-019', 'PROD-001', 'Soja', 180.0, 85.50, 15390.00),
+  ('GC-020', 'PROD-002', 'Milho', 105.0, 62.30, 6541.50)
 ON CONFLICT DO NOTHING;
 
 -- Carregamentos fake
--- Nota: Schema usa 'standby', 'finalizado', 'cancelado' (migration 007 normaliza)
--- tara_eixos_kg e final_eixos_kg são JSONB (arrays)
--- Pesos em kg (INTEGER): tara_kg, bruto_kg, liquido_kg
+-- Nota: Schema real usa tara_total e peso_final_total em NUMERIC(12,3) (gramas)
+-- tara_eixos e peso_final_eixos são JSONB (arrays)
+-- qtd_desejada é TEXT (formato: '25,500')
+-- detalhes_produto é TEXT (nome do produto)
 INSERT INTO carregamentos (
+  venda_id,
   id_gc,
   placa,
   cliente_nome,
@@ -95,25 +106,26 @@ INSERT INTO carregamentos (
   eixos,
   status,
   data_carregamento,
-  tara_kg,
-  tara_eixos_kg,
-  bruto_kg,
-  final_eixos_kg,
+  tara_total,
+  tara_eixos,
+  peso_final_total,
+  peso_final_eixos,
   finalizado_em,
-  qtd_desejada_ton,
+  qtd_desejada,
+  detalhes_produto,
   observacoes
 ) VALUES
-  ('GC-001', 'ABC-1234', 'Cliente A Ltda', 'CT-001', 3, 'standby', CURRENT_DATE, 25000, '[8500, 8200, 8300]'::jsonb, NULL, NULL, NULL, 25.5, 'Carregamento em espera'),
-  ('GC-002', 'XYZ-5678', 'Cliente B S.A', 'CT-002', 4, 'finalizado', CURRENT_DATE, 36300, '[9200, 9000, 9100, 9000]'::jsonb, 49200, '[12500, 12300, 12400, 12200]'::jsonb, CURRENT_TIMESTAMP, 30.0, 'Carregamento finalizado'),
-  ('GC-003', 'DEF-9012', 'Cliente C EIRELI', 'CT-003', 2, 'standby', CURRENT_DATE, 15800, '[7800, 8000]'::jsonb, NULL, NULL, NULL, 20.0, 'Aguardando pesagem final'),
-  ('GC-005', 'JKL-7890', 'Cliente E Ltda', 'CT-005', 3, 'cancelado', CURRENT_DATE, 26400, '[8800, 8700, 8900]'::jsonb, NULL, NULL, NULL, 22.5, 'Cancelado por motivo X'),
-  ('GC-006', 'MNO-2468', 'Cliente F S.A', 'CT-006', 4, 'standby', CURRENT_DATE, 38000, '[9500, 9400, 9600, 9500]'::jsonb, NULL, NULL, NULL, 28.0, 'Em processo'),
-  ('GC-007', 'PQR-1357', 'Cliente G EIRELI', 'CT-007', 5, 'finalizado', CURRENT_DATE, 54500, '[11000, 10800, 10900, 11000, 10800]'::jsonb, 74500, '[15000, 14800, 14900, 15000, 14800]'::jsonb, CURRENT_TIMESTAMP, 40.0, 'Carregamento completo'),
-  ('GC-009', 'VWX-8642', 'Cliente I Ltda', 'CT-009', 4, 'finalizado', CURRENT_DATE, 39200, '[9800, 9700, 9900, 9800]'::jsonb, 54000, '[13500, 13400, 13600, 13500]'::jsonb, CURRENT_TIMESTAMP, 32.0, 'Finalizado hoje'),
-  ('GC-010', 'YZA-7531', 'Cliente J S.A', 'CT-010', 3, 'standby', CURRENT_DATE, 27000, '[9000, 8900, 9100]'::jsonb, NULL, NULL, NULL, 27.5, 'Em standby'),
+  ('GC-001', 'GC-001', 'ABC-1234', 'Cliente A Ltda', 'CT-001', 3, 'standby', CURRENT_DATE, 25000.000, '[8500, 8200, 8300]'::jsonb, NULL, NULL, NULL, '25,500', 'Soja', 'Carregamento em espera'),
+  ('GC-002', 'GC-002', 'XYZ-5678', 'Cliente B S.A', 'CT-002', 4, 'finalizado', CURRENT_DATE, 36300.000, '[9200, 9000, 9100, 9000]'::jsonb, 49200.000, '[12500, 12300, 12400, 12200]'::jsonb, CURRENT_TIMESTAMP, '30,000', 'Milho', 'Carregamento finalizado'),
+  ('GC-003', 'GC-003', 'DEF-9012', 'Cliente C EIRELI', 'CT-003', 2, 'standby', CURRENT_DATE, 15800.000, '[7800, 8000]'::jsonb, NULL, NULL, NULL, '20,000', 'Trigo', 'Aguardando pesagem final'),
+  ('GC-005', 'GC-005', 'JKL-7890', 'Cliente E Ltda', 'CT-005', 3, 'cancelado', CURRENT_DATE, 26400.000, '[8800, 8700, 8900]'::jsonb, NULL, NULL, NULL, '22,500', 'Milho', 'Cancelado por motivo X'),
+  ('GC-006', 'GC-006', 'MNO-2468', 'Cliente F S.A', 'CT-006', 4, 'standby', CURRENT_DATE, 38000.000, '[9500, 9400, 9600, 9500]'::jsonb, NULL, NULL, NULL, '28,000', 'Trigo', 'Em processo'),
+  ('GC-007', 'GC-007', 'PQR-1357', 'Cliente G EIRELI', 'CT-007', 5, 'finalizado', CURRENT_DATE, 54500.000, '[11000, 10800, 10900, 11000, 10800]'::jsonb, 74500.000, '[15000, 14800, 14900, 15000, 14800]'::jsonb, CURRENT_TIMESTAMP, '40,000', 'Soja', 'Carregamento completo'),
+  ('GC-009', 'GC-009', 'VWX-8642', 'Cliente I Ltda', 'CT-009', 4, 'finalizado', CURRENT_DATE, 39200.000, '[9800, 9700, 9900, 9800]'::jsonb, 54000.000, '[13500, 13400, 13600, 13500]'::jsonb, CURRENT_TIMESTAMP, '32,000', 'Trigo', 'Finalizado hoje'),
+  ('GC-010', 'GC-010', 'YZA-7531', 'Cliente J S.A', 'CT-010', 3, 'standby', CURRENT_DATE, 27000.000, '[9000, 8900, 9100]'::jsonb, NULL, NULL, NULL, '27,500', 'Soja', 'Em standby'),
   -- Carregamentos de outros dias (para histórico)
-  ('GC-004', 'GHI-3456', 'Cliente D ME', 'CT-004', 5, 'finalizado', CURRENT_DATE - 1, 50500, '[10000, 9800, 9900, 10000, 9800]'::jsonb, 70500, '[14000, 13800, 13900, 14000, 13800]'::jsonb, CURRENT_TIMESTAMP - INTERVAL '1 day', 35.0, 'Finalizado ontem'),
-  ('GC-008', 'STU-9753', 'Cliente H ME', 'CT-008', 2, 'standby', CURRENT_DATE - 2, 15200, '[7500, 7700]'::jsonb, NULL, NULL, NULL, 18.0, 'Aguardando desde anteontem');
+  ('GC-004', 'GC-004', 'GHI-3456', 'Cliente D ME', 'CT-004', 5, 'finalizado', CURRENT_DATE - 1, 50500.000, '[10000, 9800, 9900, 10000, 9800]'::jsonb, 70500.000, '[14000, 13800, 13900, 14000, 13800]'::jsonb, CURRENT_TIMESTAMP - INTERVAL '1 day', '35,000', 'Soja', 'Finalizado ontem'),
+  ('GC-008', 'GC-008', 'STU-9753', 'Cliente H ME', 'CT-008', 2, 'standby', CURRENT_DATE - 2, 15200.000, '[7500, 7700]'::jsonb, NULL, NULL, NULL, '18,000', 'Milho', 'Aguardando desde anteontem');
 
 -- Integrações fake (algumas pendentes, algumas com erro)
 -- Nota: Verificando se a tabela integracoes_n8n existe
@@ -170,6 +182,7 @@ END $$;
 
 -- Mais carregamentos fake (para ter mais dados)
 INSERT INTO carregamentos (
+  venda_id,
   id_gc,
   placa,
   cliente_nome,
@@ -177,19 +190,20 @@ INSERT INTO carregamentos (
   eixos,
   status,
   data_carregamento,
-  tara_kg,
-  tara_eixos_kg,
-  bruto_kg,
-  final_eixos_kg,
+  tara_total,
+  tara_eixos,
+  peso_final_total,
+  peso_final_eixos,
   finalizado_em,
-  qtd_desejada_ton,
+  qtd_desejada,
+  detalhes_produto,
   observacoes
 ) VALUES
-  ('GC-011', 'BCC-1111', 'Cliente K Ltda', 'CT-011', 4, 'standby', CURRENT_DATE - 3, 36800, '[9200, 9100, 9300, 9200]'::jsonb, NULL, NULL, NULL, 28.0, 'Aguardando há 3 dias'),
-  ('GC-012', 'CDD-2222', 'Cliente L S.A', 'CT-012', 3, 'finalizado', CURRENT_DATE - 4, 25800, '[8600, 8500, 8700]'::jsonb, 36000, '[12000, 11900, 12100]'::jsonb, CURRENT_TIMESTAMP - INTERVAL '4 days', 24.0, 'Finalizado há 4 dias'),
-  ('GC-013', 'DEE-3333', 'Cliente M EIRELI', 'CT-013', 2, 'standby', CURRENT_DATE - 5, 16200, '[8000, 8200]'::jsonb, NULL, NULL, NULL, 19.5, 'Aguardando há 5 dias'),
-  ('GC-014', 'EFF-4444', 'Cliente N ME', 'CT-014', 5, 'finalizado', CURRENT_DATE - 6, 50500, '[10200, 10000, 10100, 10200, 10000]'::jsonb, 70500, '[14200, 14000, 14100, 14200, 14000]'::jsonb, CURRENT_TIMESTAMP - INTERVAL '6 days', 33.0, 'Finalizado há 6 dias'),
-  ('GC-015', 'FGG-5555', 'Cliente O Ltda', 'CT-015', 3, 'cancelado', CURRENT_DATE - 7, 25200, '[8400, 8300, 8500]'::jsonb, NULL, NULL, NULL, 21.0, 'Cancelado há 7 dias');
+  ('GC-011', 'GC-011', 'BCC-1111', 'Cliente K Ltda', 'CT-011', 4, 'standby', CURRENT_DATE - 3, 36800.000, '[9200, 9100, 9300, 9200]'::jsonb, NULL, NULL, NULL, '28,000', 'Milho', 'Aguardando há 3 dias'),
+  ('GC-012', 'GC-012', 'CDD-2222', 'Cliente L S.A', 'CT-012', 3, 'finalizado', CURRENT_DATE - 4, 25800.000, '[8600, 8500, 8700]'::jsonb, 36000.000, '[12000, 11900, 12100]'::jsonb, CURRENT_TIMESTAMP - INTERVAL '4 days', '24,000', 'Trigo', 'Finalizado há 4 dias'),
+  ('GC-013', 'GC-013', 'DEE-3333', 'Cliente M EIRELI', 'CT-013', 2, 'standby', CURRENT_DATE - 5, 16200.000, '[8000, 8200]'::jsonb, NULL, NULL, NULL, '19,500', 'Soja', 'Aguardando há 5 dias'),
+  ('GC-014', 'GC-014', 'EFF-4444', 'Cliente N ME', 'CT-014', 5, 'finalizado', CURRENT_DATE - 6, 50500.000, '[10200, 10000, 10100, 10200, 10000]'::jsonb, 70500.000, '[14200, 14000, 14100, 14200, 14000]'::jsonb, CURRENT_TIMESTAMP - INTERVAL '6 days', '33,000', 'Milho', 'Finalizado há 6 dias'),
+  ('GC-015', 'GC-015', 'FGG-5555', 'Cliente O Ltda', 'CT-015', 3, 'cancelado', CURRENT_DATE - 7, 25200.000, '[8400, 8300, 8500]'::jsonb, NULL, NULL, NULL, '21,000', 'Trigo', 'Cancelado há 7 dias');
 
 -- Logs fake (auditoria)
 -- Nota: logs_acao usa user_id (UUID) e detalhes é TEXT

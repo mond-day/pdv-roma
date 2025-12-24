@@ -50,8 +50,17 @@ export async function listCarregamentos(params: {
     paramIndex++;
   }
 
-  // Removido filtro de transportadora e motorista devido a incompatibilidade de tipos no schema
-  // transportadoras.id_gc é VARCHAR mas carregamentos.transportadora_id é INTEGER
+  if (params.transportadora) {
+    conditions.push(`t.nome ILIKE $${paramIndex}`);
+    values.push(`%${params.transportadora}%`);
+    paramIndex++;
+  }
+
+  if (params.motorista) {
+    conditions.push(`m.nome ILIKE $${paramIndex}`);
+    values.push(`%${params.motorista}%`);
+    paramIndex++;
+  }
 
   if (params.placa) {
     conditions.push(`c.placa ILIKE $${paramIndex}`);
@@ -67,13 +76,14 @@ export async function listCarregamentos(params: {
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
-  // Sempre fazer JOIN com vendas para ter acesso aos dados do cliente e contrato
-  // Usar id_gc para fazer o JOIN, já que venda_id pode não existir
-  // Removido JOINs de transportadoras e motoristas devido a incompatibilidade de tipos
+  // Fazer JOINs com vendas, transportadoras e motoristas
+  // transportadora_id (BIGINT) → transportadoras.id_gc (TEXT) via cast
   const countQuery = `
     SELECT COUNT(*)
     FROM carregamentos c
     LEFT JOIN vendas v ON v.id_gc = c.id_gc
+    LEFT JOIN transportadoras t ON t.id_gc = c.transportadora_id::text
+    LEFT JOIN motoristas m ON m.id = c.motorista_id
     ${whereClause}
   `;
   const dataQuery = `
@@ -83,20 +93,20 @@ export async function listCarregamentos(params: {
       c.placa,
       COALESCE(v.nome_cliente, c.cliente_nome, '') as cliente_nome,
       COALESCE(v.codigo, c.contrato_codigo, '') as contrato_codigo,
-      COALESCE(c.produto_nome, '') as produto_nome,
+      COALESCE(c.detalhes_produto, '') as produto_nome,
       CASE
-        WHEN c.bruto_kg IS NOT NULL AND c.tara_kg IS NOT NULL
-        THEN (c.bruto_kg - c.tara_kg)
-        WHEN c.liquido_kg IS NOT NULL
-        THEN c.liquido_kg
+        WHEN c.peso_final_total IS NOT NULL AND c.tara_total IS NOT NULL
+        THEN (c.peso_final_total - c.tara_total)
         ELSE NULL
       END as liquido_kg,
       c.status,
       i.status as integracao_status,
-      NULL as transportadora_nome,
-      NULL as motorista_nome
+      t.nome as transportadora_nome,
+      m.nome as motorista_nome
     FROM carregamentos c
     LEFT JOIN vendas v ON v.id_gc = c.id_gc
+    LEFT JOIN transportadoras t ON t.id_gc = c.transportadora_id::text
+    LEFT JOIN motoristas m ON m.id = c.motorista_id
     LEFT JOIN integracoes_n8n i ON i.carregamento_id = c.id
     ${whereClause}
     ORDER BY c.data_carregamento DESC
@@ -237,8 +247,7 @@ export async function getCarregamentoById(id: number) {
 export async function finalizarCarregamento(
   id: number,
   data: {
-    bruto_kg: number;
-    liquido_kg: number;
+    peso_final_total: number; // em gramas (NUMERIC)
     final_eixos_kg?: number[];
     idempotency_key: string;
     n8n_payload?: unknown;
@@ -248,14 +257,11 @@ export async function finalizarCarregamento(
   try {
     await client.query("BEGIN");
 
-    // Calcular peso_final_total (em TON) a partir de bruto_kg
-    const pesoFinalTotalTon = data.bruto_kg / 1000;
-
-    // Atualizar carregamento
+    // Atualizar carregamento com peso_final_total em gramas
     await client.query(
       `
       UPDATE carregamentos
-      SET 
+      SET
         status = 'finalizado',
         peso_final_total = $1,
         peso_final_eixos = $2,
@@ -263,7 +269,7 @@ export async function finalizarCarregamento(
       WHERE id = $3 AND status = 'standby'
       `,
       [
-        pesoFinalTotalTon,
+        data.peso_final_total,
         data.final_eixos_kg ? JSON.stringify(data.final_eixos_kg) : null,
         id,
       ]
@@ -304,7 +310,7 @@ export async function createCarregamento(data: {
   placa: string;
   detalhes_produto?: string;
   qtd_desejada?: string;
-  tara_total?: number; // em TON
+  tara_total?: number; // em gramas (NUMERIC)
   eixos?: number;
   tara_eixos?: number[]; // array de pesos em kg
   observacoes?: string;
