@@ -185,6 +185,7 @@ export async function getCarregamentoById(id: number) {
       c.data_carregamento::text as data_carregamento,
       COALESCE(v.nome_cliente, c.cliente_nome) as nome_cliente,
       COALESCE(v.codigo, c.contrato_codigo) as contrato_codigo,
+      pv.nome_produto as produto_nome_real,
       jsonb_build_object(
         'status', i.status,
         'ultima_mensagem', i.ultima_mensagem,
@@ -194,6 +195,7 @@ export async function getCarregamentoById(id: number) {
       ) as integracao
     FROM carregamentos c
     LEFT JOIN vendas v ON v.id_gc = c.id_gc
+    LEFT JOIN produtos_venda pv ON pv.id = c.produto_venda_id AND pv.venda_id = c.venda_id
     LEFT JOIN integracoes_n8n i ON i.carregamento_id = c.id
     WHERE c.id = $1
     `,
@@ -231,7 +233,8 @@ export async function getCarregamentoById(id: number) {
     transportadora_id: row.transportadora_id,
     motorista_id: row.motorista_id,
     produto_venda_id: row.produto_venda_id,
-    produto_nome: row.detalhes_produto || '',
+    produto_nome: row.produto_nome_real || row.detalhes_produto || '',
+    detalhes_produto: row.detalhes_produto || '',
     qtd_desejada: row.qtd_desejada,
     tara_total: row.tara_total ? parseFloat(row.tara_total) : null,
     peso_final_total: row.peso_final_total ? parseFloat(row.peso_final_total) : null,
