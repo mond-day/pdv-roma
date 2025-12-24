@@ -299,6 +299,9 @@ export default function HistoricoPage() {
                     Produto
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
+                    Motorista
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
                     Líquido (kg)
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">
@@ -312,13 +315,13 @@ export default function HistoricoPage() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                    <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
                       Carregando...
                     </td>
                   </tr>
                 ) : !data || !data.items || data.items.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                    <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
                       Nenhum carregamento encontrado com os filtros aplicados
                     </td>
                   </tr>
@@ -327,7 +330,7 @@ export default function HistoricoPage() {
                     // Normalizar status para comparação
                     const statusNormalizado = (item.status || "").toLowerCase().trim();
                     const podeCancelar = (statusNormalizado === "stand-by" || statusNormalizado === "standby" || statusNormalizado === "finalizado") && statusNormalizado !== "cancelado";
-                    
+
                     return (
                     <tr key={item.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
@@ -338,6 +341,7 @@ export default function HistoricoPage() {
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-900">{item.cliente_nome}</td>
                       <td className="px-4 py-3 text-sm text-gray-900">{item.produto_nome || "-"}</td>
+                      <td className="px-4 py-3 text-sm text-gray-900">{item.motorista_nome || "-"}</td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
                         {item.liquido_kg ? `${item.liquido_kg} kg` : "-"}
                       </td>
