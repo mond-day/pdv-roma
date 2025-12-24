@@ -27,6 +27,8 @@ export const CarregamentoResumoSchema = z.object({
   liquido_kg: z.number().int().nullable().optional(),
   status: CarregamentoStatusEnum,
   integracao_status: IntegracaoStatusEnum.nullable().optional(),
+  transportadora_nome: z.string().nullable().optional(),
+  motorista_nome: z.string().nullable().optional(),
 });
 
 export const CarregamentosListResponseSchema = z.object({

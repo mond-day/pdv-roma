@@ -69,25 +69,17 @@ export default function PesagemPage() {
     { value: "5", label: "5 Eixos" },
   ];
 
-  const produtos = [
-    { value: "1", label: "Produto A" },
-    { value: "2", label: "Produto B" },
-  ];
+  const [produtos, setProdutos] = useState<Array<{ value: string; label: string }>>([
+    { value: "", label: "Selecione um produto" }
+  ]);
 
-  const placas = [
-    { value: "ABC-1234", label: "ABC-1234" },
-    { value: "XYZ-5678", label: "XYZ-5678" },
-  ];
+  const [motoristas, setMotoristas] = useState<Array<{ value: string; label: string }>>([
+    { value: "", label: "Selecione um motorista" }
+  ]);
 
-  const motoristas = [
-    { value: "1", label: "Motorista 1" },
-    { value: "2", label: "Motorista 2" },
-  ];
-
-  const transportadoras = [
-    { value: "1", label: "Transportadora 1" },
-    { value: "2", label: "Transportadora 2" },
-  ];
+  const [transportadoras, setTransportadoras] = useState<Array<{ value: string; label: string }>>([
+    { value: "", label: "Selecione uma transportadora" }
+  ]);
 
   useEffect(() => {
     // Calcular totais quando pesos mudarem
@@ -216,7 +208,8 @@ export default function PesagemPage() {
       body: JSON.stringify({
         venda_id: vendaSelecionada.id_gc || vendaSelecionada.id,
         placa: placaSelecionada,
-        detalhes_produto: produtos.find((p) => p.value === produtoSelecionado)?.label || detalhesProduto,
+        produto_venda_id: produtoSelecionado ? parseInt(produtoSelecionado) : undefined,
+        detalhes_produto: detalhesProduto || undefined,
         qtd_desejada: qtdDesejada || null,
         tara_total: taraTotalTon,
         eixos: parseInt(qtdEixos) || null,
@@ -326,12 +319,19 @@ export default function PesagemPage() {
     console.log("Item selecionado:", item);
 
     // Verificar se é carregamento ou venda
-    if (item.is_carregamento) {
+    // Um item é considerado carregamento se:
+    // 1. Tem is_carregamento = true (vem da busca) OU
+    // 2. Tem status de carregamento (standby, finalizado, cancelado) e campo 'id' (vem da lista)
+    const isCarregamento = item.is_carregamento ||
+                          (item.status && ['standby', 'stand-by', 'finalizado', 'cancelado'].includes(item.status.toLowerCase()) && item.id);
+
+    if (isCarregamento) {
       // É um CARREGAMENTO em andamento - carregar dados completos
-      console.log("Carregamento selecionado, ID:", item.carregamento_id);
+      const carregamentoId = item.carregamento_id || item.id;
+      console.log("Carregamento selecionado, ID:", carregamentoId);
 
       try {
-        const response = await fetch(`/api/carregamentos/${item.carregamento_id}`);
+        const response = await fetch(`/api/carregamentos/${carregamentoId}`);
         const data = await response.json();
 
         if (data.ok && data.item) {
@@ -415,15 +415,10 @@ export default function PesagemPage() {
       setMotoristaSelecionado("");
       setTransportadoraSelecionada("");
       setQtdDesejada("");
-      setDetalhesProduto("");
+      setDetalhesProduto(""); // Deixar vazio - produto será selecionado no select
       setObservacoes("");
       setTaraKg(null);
-
-      // Preencher apenas dados básicos da venda (se disponíveis)
-      // Produto pode vir preenchido
-      if (item.produto_display) {
-        setDetalhesProduto(item.produto_display);
-      }
+      setProdutoSelecionado(""); // Resetar seleção de produto
     }
   }, []);
 
@@ -504,6 +499,65 @@ export default function PesagemPage() {
         console.error("Erro ao carregar configurações:", error);
       });
   }, []);
+
+  // Carregar lista de motoristas
+  useEffect(() => {
+    fetch("/api/motoristas")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.ok && data.items) {
+          const opcoes = [
+            { value: "", label: "Selecione um motorista" },
+            ...data.items.map((m: any) => ({ value: String(m.id), label: m.nome }))
+          ];
+          setMotoristas(opcoes);
+        }
+      })
+      .catch((error) => {
+        console.error("Erro ao carregar motoristas:", error);
+      });
+  }, []);
+
+  // Carregar lista de transportadoras
+  useEffect(() => {
+    fetch("/api/transportadoras")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.ok && data.items) {
+          const opcoes = [
+            { value: "", label: "Selecione uma transportadora" },
+            ...data.items.map((t: any) => ({ value: String(t.id_gc), label: t.nome }))
+          ];
+          setTransportadoras(opcoes);
+        }
+      })
+      .catch((error) => {
+        console.error("Erro ao carregar transportadoras:", error);
+      });
+  }, []);
+
+  // Carregar produtos quando selecionar uma venda
+  useEffect(() => {
+    if (vendaSelecionada && vendaSelecionada.id_gc) {
+      fetch(`/api/produtos/disponiveis?venda_id=${vendaSelecionada.id_gc}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.ok && data.items) {
+            const opcoes = [
+              { value: "", label: "Selecione um produto" },
+              ...data.items.map((p: any) => ({
+                value: String(p.produto_venda_id),
+                label: `${p.nome_produto} (${p.quantidade_disponivel.toFixed(3)} TON disponível)`
+              }))
+            ];
+            setProdutos(opcoes);
+          }
+        })
+        .catch((error) => {
+          console.error("Erro ao carregar produtos:", error);
+        });
+    }
+  }, [vendaSelecionada]);
 
   useEffect(() => {
     // Carregar lista de carregamentos - primeiro tenta últimos 7 dias, se não houver, busca últimos 30 dias
@@ -875,9 +929,17 @@ export default function PesagemPage() {
                               </p>
                             </div>
                             <p className="text-sm text-gray-600">
-                              {item.produto_display || "Sem produto"}
-                              {item.placa && ` | Placa: ${item.placa}`}
-                              {!item.is_carregamento && item.situacao && ` | Situação: ${item.situacao}`}
+                              {item.is_carregamento ? (
+                                // Para carregamentos: mostrar apenas Placa, Tara e Motorista
+                                <>
+                                  {item.placa && `Placa: ${item.placa}`}
+                                  {item.tara_total && ` | Tara: ${item.tara_total} kg`}
+                                  {item.motorista_nome && ` | Motorista: ${item.motorista_nome}`}
+                                </>
+                              ) : (
+                                // Para vendas: mostrar produto
+                                item.produto_display || "Sem produto"
+                              )}
                             </p>
                             <p className="text-xs text-gray-500">
                               {item.data
@@ -891,6 +953,13 @@ export default function PesagemPage() {
                             <Badge variant={badgeVariant}>
                               {item.tag_label || (item.is_carregamento ? "Carregamento" : "Contrato")}
                             </Badge>
+                            {/* Situação do contrato abaixo da tag (apenas para vendas) */}
+                            {!item.is_carregamento && item.situacao && (
+                              <Badge variant="default" className="text-xs">
+                                {item.situacao}
+                              </Badge>
+                            )}
+                            {/* Status do carregamento abaixo da tag */}
                             {item.is_carregamento && (
                               <Badge variant={getStatusBadgeVariant(item.status_item)}>
                                 {formatStatus(item.status_item)}
