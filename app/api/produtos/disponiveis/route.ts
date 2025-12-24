@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
 
     return successResponse({
       ok: true,
-      produtos,
+      items: produtos,
     });
   } catch (error) {
     console.error("Erro ao buscar produtos disponíveis:", error);

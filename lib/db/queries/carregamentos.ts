@@ -186,6 +186,13 @@ export async function getCarregamentoById(id: number) {
       COALESCE(v.nome_cliente, c.cliente_nome) as nome_cliente,
       COALESCE(v.codigo, c.contrato_codigo) as contrato_codigo,
       pv.nome_produto as produto_nome_real,
+      m.nome as motorista_nome,
+      t.nome as transportadora_nome,
+      CASE
+        WHEN c.status = 'finalizado' AND c.peso_final_total IS NOT NULL AND c.tara_total IS NOT NULL
+        THEN (c.peso_final_total - c.tara_total)
+        ELSE NULL
+      END as liquido_kg,
       jsonb_build_object(
         'status', i.status,
         'ultima_mensagem', i.ultima_mensagem,
@@ -196,6 +203,8 @@ export async function getCarregamentoById(id: number) {
     FROM carregamentos c
     LEFT JOIN vendas v ON v.id_gc = c.id_gc
     LEFT JOIN produtos_venda pv ON pv.id = c.produto_venda_id AND pv.venda_id = c.venda_id
+    LEFT JOIN motoristas m ON m.id = c.motorista_id
+    LEFT JOIN transportadoras t ON t.id_gc = c.transportadora_id::text
     LEFT JOIN integracoes_n8n i ON i.carregamento_id = c.id
     WHERE c.id = $1
     `,
@@ -231,13 +240,16 @@ export async function getCarregamentoById(id: number) {
     id_gc: row.id_gc,
     venda_id: row.venda_id,
     transportadora_id: row.transportadora_id,
+    transportadora_nome: row.transportadora_nome || '',
     motorista_id: row.motorista_id,
+    motorista_nome: row.motorista_nome || '',
     produto_venda_id: row.produto_venda_id,
     produto_nome: row.produto_nome_real || row.detalhes_produto || '',
     detalhes_produto: row.detalhes_produto || '',
     qtd_desejada: row.qtd_desejada,
     tara_total: row.tara_total ? parseFloat(row.tara_total) : null,
     peso_final_total: row.peso_final_total ? parseFloat(row.peso_final_total) : null,
+    liquido_kg: row.liquido_kg ? parseFloat(row.liquido_kg) : null,
     eixos: row.eixos,
     tara_eixos_kg: Object.keys(taraEixosObj).length > 0 ? taraEixosObj : null,
     final_eixos_kg: Object.keys(finalEixosObj).length > 0 ? finalEixosObj : null,

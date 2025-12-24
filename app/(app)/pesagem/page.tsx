@@ -20,10 +20,10 @@ type FasePesagem = "TARA" | "FINAL" | null;
 
 interface PlacaData {
   placa: string;
-  motorista_id?: number;
-  motorista_nome?: string;
-  transportadora_id?: number | string;
-  transportadora_nome?: string;
+  motorista_ids?: number[];
+  motorista_nomes?: string[];
+  transportadora_ids?: string[];
+  transportadora_nomes?: string[];
 }
 
 export default function PesagemPage() {
@@ -69,7 +69,7 @@ export default function PesagemPage() {
     { value: "5", label: "5 Eixos" },
   ];
 
-  const [produtos, setProdutos] = useState<Array<{ value: string; label: string }>>([
+  const [produtos, setProdutos] = useState<Array<{ value: string; label: string; disabled?: boolean }>>([
     { value: "", label: "Selecione um produto" }
   ]);
 
@@ -180,13 +180,22 @@ export default function PesagemPage() {
     console.log("Dados da placa encontrados:", placaData);
 
     if (placaData) {
-      if (placaData.motorista_id) {
-        console.log("Auto-preenchendo motorista:", placaData.motorista_id);
-        setMotoristaSelecionado(String(placaData.motorista_id));
+      // Motorista: auto-preencher apenas se houver exatamente 1 vínculo
+      if (placaData.motorista_ids && placaData.motorista_ids.length === 1) {
+        console.log("Auto-preenchendo motorista (vínculo único):", placaData.motorista_ids[0]);
+        setMotoristaSelecionado(String(placaData.motorista_ids[0]));
+      } else if (placaData.motorista_ids && placaData.motorista_ids.length > 1) {
+        console.log(`Placa tem ${placaData.motorista_ids.length} motoristas vinculados - usuário deve escolher`);
+        // TODO: Futuramente, filtrar o select de motoristas para mostrar apenas os vinculados
       }
-      if (placaData.transportadora_id) {
-        console.log("Auto-preenchendo transportadora:", placaData.transportadora_id);
-        setTransportadoraSelecionada(String(placaData.transportadora_id));
+
+      // Transportadora: auto-preencher apenas se houver exatamente 1 vínculo
+      if (placaData.transportadora_ids && placaData.transportadora_ids.length === 1) {
+        console.log("Auto-preenchendo transportadora (vínculo único):", placaData.transportadora_ids[0]);
+        setTransportadoraSelecionada(String(placaData.transportadora_ids[0]));
+      } else if (placaData.transportadora_ids && placaData.transportadora_ids.length > 1) {
+        console.log(`Placa tem ${placaData.transportadora_ids.length} transportadoras vinculadas - usuário deve escolher`);
+        // TODO: Futuramente, filtrar o select de transportadoras para mostrar apenas as vinculadas
       }
     } else {
       console.warn("Nenhum dado encontrado para placa:", placa);
@@ -373,6 +382,7 @@ export default function PesagemPage() {
           if (carregamento.placa) setPlacaSelecionada(carregamento.placa);
           if (carregamento.motorista_id) setMotoristaSelecionado(String(carregamento.motorista_id));
           if (carregamento.transportadora_id) setTransportadoraSelecionada(String(carregamento.transportadora_id));
+          if (carregamento.produto_venda_id) setProdutoSelecionado(String(carregamento.produto_venda_id));
           if (carregamento.qtd_desejada) setQtdDesejada(carregamento.qtd_desejada);
           if (carregamento.detalhes_produto) setDetalhesProduto(carregamento.detalhes_produto);
           if (carregamento.observacoes) setObservacoes(carregamento.observacoes);
@@ -573,13 +583,16 @@ export default function PesagemPage() {
               { value: "", label: "Selecione um produto" },
               ...data.items.map((p: any) => ({
                 value: String(p.produto_venda_id),
-                label: `${p.nome_produto} (${p.quantidade_disponivel.toFixed(3)} TON disponível)`
+                label: `${p.nome_produto} (${p.quantidade_disponivel.toFixed(3)} TON disponível)`,
+                disabled: p.quantidade_disponivel <= 0
               }))
             ];
             setProdutos(opcoes);
             console.log("Produtos configurados:", opcoes);
           } else {
             console.warn("Nenhum produto disponível para esta venda");
+            // Even if no products, show empty list instead of not setting anything
+            setProdutos([{ value: "", label: "Selecione um produto" }]);
           }
         })
         .catch((error) => {
