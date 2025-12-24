@@ -8,6 +8,7 @@ import {
   CreateCarregamentoResponseSchema,
 } from "@/lib/validators/carregamentos";
 import { listCarregamentos, createCarregamento } from "@/lib/db/queries/carregamentos";
+import { validarQuantidadeDisponivel } from "@/lib/db/queries/produtos";
 import { createLog } from "@/lib/db/queries/logs";
 import { successResponse, errorResponse, unauthorizedResponse } from "@/lib/utils/response";
 import { z } from "zod";
@@ -111,6 +112,26 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const validated = CreateCarregamentoBodySchema.parse(body);
+
+    // Validar quantidade disponível se produto_venda_id e qtd_desejada fornecidos
+    if (validated.produto_venda_id && validated.qtd_desejada) {
+      const qtdDesejadaTon = parseFloat(validated.qtd_desejada.replace(/,/g, ''));
+      if (!isNaN(qtdDesejadaTon)) {
+        try {
+          await validarQuantidadeDisponivel({
+            venda_id: validated.venda_id,
+            produto_venda_id: validated.produto_venda_id,
+            quantidade_desejada: qtdDesejadaTon,
+          });
+        } catch (error) {
+          // Erro de validação de quantidade
+          return errorResponse(
+            error instanceof Error ? error.message : "Quantidade excede disponível",
+            400
+          );
+        }
+      }
+    }
 
     const item = await createCarregamento(validated);
 
