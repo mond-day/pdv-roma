@@ -49,11 +49,15 @@ REM Solicitar senha do PostgreSQL
 echo [INFO] Será solicitada a senha do PostgreSQL
 echo.
 echo [INFO] Executando migrações na ordem:
-echo        001 - Init
-echo        002 - Logs Immutable
-echo        003 - Seed Fake Data
-echo        004 - Appsmith Schema Alignment
-echo        005 - Fix Encoding UTF-8
+       001 - Init
+       002 - Logs Immutable
+       003 - Seed Fake Data
+       004 - Appsmith Schema Alignment
+       005 - Fix Encoding UTF-8
+       006 - Fix Encoding V2
+       007 - Normalizar Status
+       008 - Align with Real Schema
+       009 - Fix Schema Alignment (CORRETIVA)
 echo.
 
 REM Executar migrações em ordem
