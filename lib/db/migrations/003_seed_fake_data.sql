@@ -272,3 +272,59 @@ BEGIN
   END IF;
 END $$;
 
+
+-- ========================================================================
+-- SEED DATA PARA VÍNCULOS DE PLACAS
+-- ========================================================================
+
+-- Inserir placas únicas (extraídas dos carregamentos)
+INSERT INTO placas (placa)
+SELECT DISTINCT placa 
+FROM carregamentos 
+WHERE placa IS NOT NULL
+ON CONFLICT (placa) DO NOTHING;
+
+-- Vínculos placas → motoristas (baseado nos carregamentos existentes)
+-- Vínculo único: cada placa vinculada a UM motorista
+INSERT INTO placas_motoristas (placa_id, motorista_id)
+SELECT DISTINCT 
+  p.id as placa_id,
+  c.motorista_id
+FROM carregamentos c
+JOIN placas p ON p.placa = c.placa
+WHERE c.motorista_id IS NOT NULL
+ON CONFLICT (placa_id, motorista_id) DO NOTHING;
+
+-- Vínculos placas → transportadoras (baseado nos carregamentos existentes)
+-- Vínculo único: cada placa vinculada a UMA transportadora
+INSERT INTO placas_transportadoras (placa_id, transportadora_id)
+SELECT DISTINCT 
+  p.id as placa_id,
+  c.transportadora_id::text as transportadora_id
+FROM carregamentos c
+JOIN placas p ON p.placa = c.placa
+WHERE c.transportadora_id IS NOT NULL
+ON CONFLICT (placa_id, transportadora_id) DO NOTHING;
+
+-- Adicionar alguns vínculos múltiplos para teste
+-- Placa ABC-1234 vinculada a 2 motoristas
+DO $$
+DECLARE
+  placa_abc_id INTEGER;
+BEGIN
+  SELECT id INTO placa_abc_id FROM placas WHERE placa = 'ABC-1234' LIMIT 1;
+  
+  IF placa_abc_id IS NOT NULL THEN
+    -- Adicionar vínculo com o segundo motorista (se existir)
+    INSERT INTO placas_motoristas (placa_id, motorista_id)
+    SELECT placa_abc_id, id 
+    FROM motoristas 
+    WHERE id != (SELECT motorista_id FROM placas_motoristas WHERE placa_id = placa_abc_id LIMIT 1)
+    LIMIT 1
+    ON CONFLICT (placa_id, motorista_id) DO NOTHING;
+  END IF;
+END $$;
+
+ANALYZE placas;
+ANALYZE placas_motoristas;
+ANALYZE placas_transportadoras;

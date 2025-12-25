@@ -36,9 +36,8 @@ export function EixoInput({
   // Se o limite está em TON (valor < 10), mostrar em TON, senão em kg
   const isTon = limiteEixo < 10;
   
-  // Converter vírgula para ponto para cálculo (usar valor atual do input)
-  const currentValue = isFocused ? localValue : peso;
-  const pesoNum = parseFloat((currentValue || '').toString().replace(',', '.').replace(/[^\d.]/g, '')) || 0;
+  // Converter vírgula para ponto para cálculo (sempre usar localValue)
+  const pesoNum = parseFloat((localValue || '').toString().replace(',', '.').replace(/[^\d.]/g, '')) || 0;
   const excessoCalculado = excesso !== undefined ? excesso : (pesoNum > limiteEixo ? pesoNum - limiteEixo : 0);
   
   const getExcessoClass = () => {
@@ -98,8 +97,7 @@ export function EixoInput({
         } ${props.disabled ? "bg-gray-50 cursor-not-allowed opacity-75" : ""}`}
         onFocus={() => {
           setIsFocused(true);
-          // Quando focar, usar o valor atual (pode estar formatado)
-          setLocalValue(peso);
+          // NÃO resetar o valor ao focar - manter o que o usuário digitou
         }}
         onBlur={(e) => {
           setIsFocused(false);
