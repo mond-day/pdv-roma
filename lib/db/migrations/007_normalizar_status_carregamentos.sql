@@ -62,3 +62,4 @@ END $$;
 -- Comentário
 COMMENT ON COLUMN carregamentos.status IS 'Status do carregamento: standby, finalizado ou cancelado';
 
+
