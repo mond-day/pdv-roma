@@ -4,7 +4,7 @@
 -- Ou use os scripts: seed-fake-data.ps1 (Windows) ou seed-fake-data.sh (Linux/Mac)
 
 -- Limpar dados fake anteriores (manter integridade referencial)
-TRUNCATE TABLE carregamentos, vendas, produtos_venda, transportadoras, motoristas RESTART IDENTITY CASCADE;
+TRUNCATE TABLE carregamentos, vendas, produtos_venda, transportadoras, motoristas, placas_motoristas, placas_transportadoras, placas RESTART IDENTITY CASCADE;
 
 -- Transportadoras fake (precisa existir antes de vendas e carregamentos)
 INSERT INTO transportadoras (
@@ -30,6 +30,51 @@ INSERT INTO motoristas (
   ('João Silva', '123.456.789-01', 'TRANS-001'),
   ('Maria Santos', '987.654.321-02', 'TRANS-002')
 ON CONFLICT DO NOTHING;
+
+-- Placas fake (precisa existir antes dos vínculos)
+INSERT INTO placas (placa) VALUES
+  ('ABC-1234'),
+  ('XYZ-5678'),
+  ('DEF-9012'),
+  ('GHI-3456'),
+  ('JKL-7890'),
+  ('MNO-2468'),
+  ('PQR-1357'),
+  ('STU-9753'),
+  ('VWX-8642'),
+  ('YZA-7531'),
+  ('BCC-1111'),
+  ('CDD-2222'),
+  ('DEE-3333'),
+  ('EFF-4444'),
+  ('FGG-5555')
+ON CONFLICT (placa) DO NOTHING;
+
+-- Vínculos placas_motoristas (relação N-N)
+-- ABC-1234, DEF-9012, GHI-3456, MNO-2468, VWX-8642, BCC-1111, DEE-3333, FGG-5555 -> Motorista João Silva
+-- XYZ-5678, JKL-7890, PQR-1357, STU-9753, YZA-7531, CDD-2222, EFF-4444 -> Motorista Maria Santos
+INSERT INTO placas_motoristas (placa_id, motorista_id)
+SELECT p.id, m.id
+FROM placas p
+CROSS JOIN motoristas m
+WHERE 
+  (p.placa IN ('ABC-1234', 'DEF-9012', 'GHI-3456', 'MNO-2468', 'VWX-8642', 'BCC-1111', 'DEE-3333', 'FGG-5555') AND m.nome = 'João Silva')
+  OR
+  (p.placa IN ('XYZ-5678', 'JKL-7890', 'PQR-1357', 'STU-9753', 'YZA-7531', 'CDD-2222', 'EFF-4444') AND m.nome = 'Maria Santos')
+ON CONFLICT (placa_id, motorista_id) DO NOTHING;
+
+-- Vínculos placas_transportadoras (relação N-N)
+-- ABC-1234, DEF-9012, GHI-3456, MNO-2468, VWX-8642, BCC-1111, DEE-3333, FGG-5555 -> Transportadora TRANS-001 (Alpha)
+-- XYZ-5678, JKL-7890, PQR-1357, STU-9753, YZA-7531, CDD-2222, EFF-4444 -> Transportadora TRANS-002 (Beta)
+INSERT INTO placas_transportadoras (placa_id, transportadora_id)
+SELECT p.id, t.id_gc
+FROM placas p
+CROSS JOIN transportadoras t
+WHERE 
+  (p.placa IN ('ABC-1234', 'DEF-9012', 'GHI-3456', 'MNO-2468', 'VWX-8642', 'BCC-1111', 'DEE-3333', 'FGG-5555') AND t.id_gc = 'TRANS-001')
+  OR
+  (p.placa IN ('XYZ-5678', 'JKL-7890', 'PQR-1357', 'STU-9753', 'YZA-7531', 'CDD-2222', 'EFF-4444') AND t.id_gc = 'TRANS-002')
+ON CONFLICT (placa_id, transportadora_id) DO NOTHING;
 
 -- Vendas/Contratos fake (precisa existir antes dos carregamentos)
 INSERT INTO vendas (

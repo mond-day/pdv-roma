@@ -9,6 +9,7 @@ interface EixoInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   excesso?: number;
   error?: string;
   showTooltip?: boolean;
+  fasePesagem?: "TARA" | "FINAL" | null; // Adicionar prop para controlar quando mostrar excesso
 }
 
 export function EixoInput({
@@ -20,17 +21,22 @@ export function EixoInput({
   error,
   showTooltip = true,
   className = "",
+  fasePesagem = null,
+  onChange: propsOnChange,
   ...props
 }: EixoInputProps) {
   // Estado local para texto livre durante a digitação
+  // IMPORTANTE: Inicializar com o prop, mas depois controlar localmente durante digitação
   const [localValue, setLocalValue] = useState(peso);
   const [isFocused, setIsFocused] = useState(false);
   
-  // Sincronizar com o prop peso quando mudar externamente (mas não durante digitação)
+  // Sincronizar com o prop peso apenas quando não estamos focados
+  // Isso permite que mudanças externas (ex: limpar formulário) atualizem o input
   useEffect(() => {
     if (!isFocused) {
       setLocalValue(peso);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [peso, isFocused]);
   
   // Se o limite está em TON (valor < 10), mostrar em TON, senão em kg
@@ -98,7 +104,7 @@ export function EixoInput({
         } ${props.disabled ? "bg-gray-50 cursor-not-allowed opacity-75" : ""}`}
         onFocus={() => {
           setIsFocused(true);
-          // Quando focar, usar o valor atual (pode estar formatado)
+          // Quando focar, garantir que o valor local está sincronizado
           setLocalValue(peso);
         }}
         onBlur={(e) => {
@@ -109,12 +115,12 @@ export function EixoInput({
           
           if (value === "") {
             setLocalValue("");
-            if (props.onChange) {
+            if (propsOnChange) {
               const syntheticEvent = {
                 ...e,
                 target: { ...e.target, value: "" }
               } as React.ChangeEvent<HTMLInputElement>;
-              props.onChange(syntheticEvent);
+              propsOnChange(syntheticEvent);
             }
             return;
           }
@@ -139,24 +145,54 @@ export function EixoInput({
           // Atualizar valor local formatado
           setLocalValue(value);
           
-          // Chamar onChange para atualizar o estado pai
-          if (props.onChange) {
+          // Chamar onChange para atualizar o estado pai com valor formatado
+          // IMPORTANTE: Só atualizar se o valor formatado for diferente do atual
+          if (propsOnChange && value !== peso) {
             const syntheticEvent = {
               ...e,
               target: { ...e.target, value }
             } as React.ChangeEvent<HTMLInputElement>;
-            props.onChange(syntheticEvent);
+            propsOnChange(syntheticEvent);
           }
         }}
-        onChange={(e) => {
-          // Durante a digitação, permitir texto livre (sem formatação)
-          // Atualizar apenas o estado local, não o estado pai
-          const value = e.target.value;
-          setLocalValue(value);
-        }}
         {...props}
+        onChange={(e) => {
+          // Durante a digitação, validar e filtrar caracteres inválidos
+          let value = e.target.value;
+          
+          // Remover caracteres não permitidos (apenas números, vírgula e ponto)
+          value = value.replace(/[^\d,.]/g, '');
+          
+          // Substituir ponto por vírgula para padronizar
+          value = value.replace(/\./g, ',');
+          
+          // Garantir apenas uma vírgula
+          const parts = value.split(',');
+          if (parts.length > 2) {
+            value = parts[0] + ',' + parts.slice(1).join('');
+          }
+          
+          // Limitar casas decimais a 3 dígitos após a vírgula durante a digitação
+          if (parts.length === 2 && parts[1].length > 3) {
+            value = parts[0] + ',' + parts[1].substring(0, 3);
+          }
+          
+          setLocalValue(value);
+          
+          // Atualizar o estado pai imediatamente para evitar reset
+          // IMPORTANTE: Chamar propsOnChange DEPOIS de atualizar localValue
+          if (propsOnChange) {
+            // Criar um novo evento com o valor validado
+            const syntheticEvent = {
+              ...e,
+              target: { ...e.target, value }
+            } as React.ChangeEvent<HTMLInputElement>;
+            propsOnChange(syntheticEvent);
+          }
+        }}
       />
-      {excessoCalculado > 0 && (
+      {/* Mostrar excesso apenas na fase FINAL, não na TARA */}
+      {excessoCalculado > 0 && fasePesagem === "FINAL" && (
         <span
           id={`excesso-eixo-${eixoNumber}`}
           role="status"

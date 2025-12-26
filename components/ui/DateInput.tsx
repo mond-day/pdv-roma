@@ -15,6 +15,8 @@ export function DateInput({ label, value, onChange, error, className = "" }: Dat
   const [isOpen, setIsOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const calendarRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const calendarPosition = useRef<{ top: boolean; right: boolean }>({ top: false, right: false });
 
   // Converter ISO para DD/MM/AAAA
   const formatToDisplay = (isoDate: string): string => {
@@ -104,6 +106,31 @@ export function DateInput({ label, value, onChange, error, className = "" }: Dat
     setIsOpen(true);
   };
 
+  // Calcular posição do calendário para evitar que seja cortado
+  useEffect(() => {
+    if (isOpen && inputRef.current) {
+      const inputRect = inputRef.current.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const calendarWidth = 256; // w-64 = 256px
+      const calendarHeight = 310; // altura aproximada do calendário
+      
+      // Verificar se há espaço à direita
+      const spaceRight = viewportWidth - inputRect.right;
+      const spaceLeft = inputRect.left;
+      
+      // Verificar se há espaço abaixo
+      const spaceBelow = viewportHeight - inputRect.bottom;
+      const spaceAbove = inputRect.top;
+      
+      // Posicionar à direita se houver espaço, senão à esquerda
+      calendarPosition.current.right = spaceRight >= calendarWidth || spaceRight > spaceLeft;
+      
+      // Posicionar abaixo se houver espaço, senão acima
+      calendarPosition.current.top = spaceBelow < calendarHeight && spaceAbove > spaceBelow;
+    }
+  }, [isOpen]);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (calendarRef.current && !calendarRef.current.contains(event.target as Node)) {
@@ -148,7 +175,7 @@ export function DateInput({ label, value, onChange, error, className = "" }: Dat
   ];
 
   return (
-    <div className={`w-full relative ${className}`} ref={calendarRef} style={{ zIndex: isOpen ? 50 : 'auto' }}>
+    <div className={`${label ? 'w-full' : ''} relative ${className}`} ref={calendarRef} style={{ zIndex: isOpen ? 50 : 'auto' }}>
       {label && (
         <label className="block text-sm font-semibold text-gray-900 mb-1.5">
           {label}
@@ -156,6 +183,7 @@ export function DateInput({ label, value, onChange, error, className = "" }: Dat
       )}
       <div className="relative">
         <input
+          ref={inputRef}
           type="text"
           value={displayValue}
           onChange={handleDisplayChange}
@@ -175,7 +203,17 @@ export function DateInput({ label, value, onChange, error, className = "" }: Dat
       </div>
       
       {isOpen && (
-        <div className="absolute z-[100] mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-4 w-64">
+        <div 
+          className={`absolute z-[100] bg-white border border-gray-300 rounded-lg shadow-lg p-4 w-64 ${
+            calendarPosition.current.top ? 'bottom-full mb-1' : 'top-full mt-1'
+          } ${
+            calendarPosition.current.right ? 'right-0' : 'left-0'
+          }`}
+          style={{
+            left: calendarPosition.current.right ? undefined : '-37px',
+            top: calendarPosition.current.top ? undefined : '40px'
+          }}
+        >
           <div className="flex items-center justify-between mb-4">
             <button
               type="button"

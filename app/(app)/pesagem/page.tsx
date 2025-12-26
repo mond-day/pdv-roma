@@ -74,6 +74,16 @@ export default function PesagemPage() {
     { value: "", label: "Selecione um produto" }
   ]);
 
+  // Listas completas de motoristas e transportadoras (carregadas da API)
+  const [todosMotoristas, setTodosMotoristas] = useState<Array<{ value: string; label: string }>>([
+    { value: "", label: "Selecione um motorista" }
+  ]);
+
+  const [todasTransportadoras, setTodasTransportadoras] = useState<Array<{ value: string; label: string }>>([
+    { value: "", label: "Selecione uma transportadora" }
+  ]);
+
+  // Listas filtradas baseadas na placa selecionada
   const [motoristas, setMotoristas] = useState<Array<{ value: string; label: string }>>([
     { value: "", label: "Selecione um motorista" }
   ]);
@@ -88,27 +98,27 @@ export default function PesagemPage() {
 
   // Quando os motoristas são carregados, verificar se há um ID pendente para selecionar
   useEffect(() => {
-    if (motoristaIdPendente && motoristas.length > 1) {
-      const motoristaExiste = motoristas.some(m => m.value === motoristaIdPendente);
+    if (motoristaIdPendente && todosMotoristas.length > 1) {
+      const motoristaExiste = todosMotoristas.some(m => m.value === motoristaIdPendente);
       if (motoristaExiste) {
         console.log("Aplicando motorista pendente:", motoristaIdPendente);
         setMotoristaSelecionado(motoristaIdPendente);
         setMotoristaIdPendente(null);
       }
     }
-  }, [motoristas, motoristaIdPendente]);
+  }, [todosMotoristas, motoristaIdPendente]);
 
   // Quando as transportadoras são carregadas, verificar se há um ID pendente para selecionar
   useEffect(() => {
-    if (transportadoraIdPendente && transportadoras.length > 1) {
-      const transportadoraExiste = transportadoras.some(t => t.value === transportadoraIdPendente);
+    if (transportadoraIdPendente && todasTransportadoras.length > 1) {
+      const transportadoraExiste = todasTransportadoras.some(t => t.value === transportadoraIdPendente);
       if (transportadoraExiste) {
         console.log("Aplicando transportadora pendente:", transportadoraIdPendente);
         setTransportadoraSelecionada(transportadoraIdPendente);
         setTransportadoraIdPendente(null);
       }
     }
-  }, [transportadoras, transportadoraIdPendente]);
+  }, [todasTransportadoras, transportadoraIdPendente]);
 
   useEffect(() => {
     // Calcular totais quando pesos mudarem
@@ -235,6 +245,77 @@ export default function PesagemPage() {
     }
   }, [placaDataMap]);
 
+  // Filtrar motoristas e transportadoras baseado na placa selecionada
+  // IMPORTANTE: Este useEffect só deve executar quando:
+  // 1. Uma placa é selecionada
+  // 2. Os motoristas/transportadoras foram carregados (length > 1 = tem dados além do placeholder)
+  // 3. O placaDataMap foi atualizado
+  useEffect(() => {
+    // Aguardar até que motoristas e transportadoras sejam carregados
+    if (todosMotoristas.length <= 1 || todasTransportadoras.length <= 1) {
+      console.log("🔍 [FILTRO] Aguardando carregamento de motoristas/transportadoras...");
+      // Inicialmente, mostrar todos (mesmo que só tenha o placeholder)
+      setMotoristas(todosMotoristas);
+      setTransportadoras(todasTransportadoras);
+      return;
+    }
+
+    console.log("🔍 [FILTRO] Placa selecionada:", placaSelecionada);
+    console.log("🔍 [FILTRO] PlacaDataMap size:", placaDataMap.size);
+    console.log("🔍 [FILTRO] Todos motoristas:", todosMotoristas.length);
+    console.log("🔍 [FILTRO] Todas transportadoras:", todasTransportadoras.length);
+    
+    if (!placaSelecionada) {
+      // Se não há placa selecionada, mostrar todos
+      console.log("🔍 [FILTRO] Sem placa selecionada - mostrando todos");
+      setMotoristas(todosMotoristas);
+      setTransportadoras(todasTransportadoras);
+      return;
+    }
+
+    const placaData = placaDataMap.get(placaSelecionada);
+    console.log("🔍 [FILTRO] Dados da placa encontrados:", placaData);
+    
+    if (placaData) {
+      // Filtrar motoristas vinculados à placa
+      if (placaData.motorista_ids && placaData.motorista_ids.length > 0) {
+        console.log("🔍 [FILTRO] Motorista IDs vinculados à placa:", placaData.motorista_ids);
+        console.log("🔍 [FILTRO] Total de motoristas disponíveis:", todosMotoristas.length - 1, "(sem contar placeholder)");
+        const motoristasFiltrados = todosMotoristas.filter(m => 
+          m.value === "" || placaData.motorista_ids!.includes(parseInt(m.value))
+        );
+        console.log("🔍 [FILTRO] Motoristas filtrados:", motoristasFiltrados.length, "itens:", motoristasFiltrados.map(m => ({ value: m.value, label: m.label })));
+        console.log("🔍 [FILTRO] Motoristas que SERÃO EXIBIDOS no select:", motoristasFiltrados.length - 1, "(sem contar placeholder)");
+        setMotoristas(motoristasFiltrados);
+      } else {
+        // Se não há vínculos, mostrar todos
+        console.log("🔍 [FILTRO] Sem vínculos de motorista - mostrando todos os", todosMotoristas.length - 1, "motoristas disponíveis");
+        setMotoristas(todosMotoristas);
+      }
+
+      // Filtrar transportadoras vinculadas à placa
+      if (placaData.transportadora_ids && placaData.transportadora_ids.length > 0) {
+        console.log("🔍 [FILTRO] Transportadora IDs vinculadas à placa:", placaData.transportadora_ids);
+        console.log("🔍 [FILTRO] Total de transportadoras disponíveis:", todasTransportadoras.length - 1, "(sem contar placeholder)");
+        const transportadorasFiltradas = todasTransportadoras.filter(t => 
+          t.value === "" || placaData.transportadora_ids!.includes(t.value)
+        );
+        console.log("🔍 [FILTRO] Transportadoras filtradas:", transportadorasFiltradas.length, "itens:", transportadorasFiltradas.map(t => ({ value: t.value, label: t.label })));
+        console.log("🔍 [FILTRO] Transportadoras que SERÃO EXIBIDAS no select:", transportadorasFiltradas.length - 1, "(sem contar placeholder)");
+        setTransportadoras(transportadorasFiltradas);
+      } else {
+        // Se não há vínculos, mostrar todas
+        console.log("🔍 [FILTRO] Sem vínculos de transportadora - mostrando todas as", todasTransportadoras.length - 1, "transportadoras disponíveis");
+        setTransportadoras(todasTransportadoras);
+      }
+    } else {
+      // Se não há dados da placa, mostrar todos
+      console.log("🔍 [FILTRO] Nenhum dado encontrado para placa - mostrando todos");
+      setMotoristas(todosMotoristas);
+      setTransportadoras(todasTransportadoras);
+    }
+  }, [placaSelecionada, placaDataMap, todosMotoristas, todasTransportadoras]);
+
   // Handler quando uma placa é selecionada - auto-popular motorista e transportadora
   const handlePlacaChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const placa = e.target.value.toUpperCase();
@@ -242,7 +323,6 @@ export default function PesagemPage() {
 
     console.log("Placa selecionada:", placa);
     console.log("PlacaDataMap:", placaDataMap);
-    console.log("Motoristas disponíveis:", motoristas);
 
     // Se a placa existe no mapa, auto-popular motorista e transportadora
     const placaData = placaDataMap.get(placa);
@@ -253,11 +333,10 @@ export default function PesagemPage() {
       if (placaData.motorista_ids && placaData.motorista_ids.length === 1) {
         const motoristaId = String(placaData.motorista_ids[0]);
         console.log("Auto-preenchendo motorista (vínculo único):", motoristaId);
-        console.log("Motoristas disponíveis no select:", motoristas.map(m => ({ value: m.value, label: m.label })));
         
         // Verificar se o motorista existe nas opções disponíveis
-        const motoristaExiste = motoristas.length > 1 && motoristas.some(m => m.value === motoristaId);
-        console.log("Motorista existe nas opções?", motoristaExiste, "Total de motoristas:", motoristas.length);
+        const motoristaExiste = todosMotoristas.length > 1 && todosMotoristas.some(m => m.value === motoristaId);
+        console.log("Motorista existe nas opções?", motoristaExiste, "Total de motoristas:", todosMotoristas.length);
         
         if (motoristaExiste) {
           setMotoristaSelecionado(motoristaId);
@@ -269,18 +348,21 @@ export default function PesagemPage() {
         }
       } else if (placaData.motorista_ids && placaData.motorista_ids.length > 1) {
         console.log(`Placa tem ${placaData.motorista_ids.length} motoristas vinculados - usuário deve escolher`);
-        // TODO: Futuramente, filtrar o select de motoristas para mostrar apenas os vinculados
+        // Limpar seleção se houver múltiplos vínculos
+        setMotoristaSelecionado("");
+      } else {
+        // Limpar seleção se não houver vínculos
+        setMotoristaSelecionado("");
       }
 
       // Transportadora: auto-preencher apenas se houver exatamente 1 vínculo
       if (placaData.transportadora_ids && placaData.transportadora_ids.length === 1) {
         const transportadoraId = String(placaData.transportadora_ids[0]);
         console.log("Auto-preenchendo transportadora (vínculo único):", transportadoraId);
-        console.log("Transportadoras disponíveis no select:", transportadoras.map(t => ({ value: t.value, label: t.label })));
         
         // Verificar se a transportadora existe nas opções disponíveis
-        const transportadoraExiste = transportadoras.length > 1 && transportadoras.some(t => t.value === transportadoraId);
-        console.log("Transportadora existe nas opções?", transportadoraExiste, "Total de transportadoras:", transportadoras.length);
+        const transportadoraExiste = todasTransportadoras.length > 1 && todasTransportadoras.some(t => t.value === transportadoraId);
+        console.log("Transportadora existe nas opções?", transportadoraExiste, "Total de transportadoras:", todasTransportadoras.length);
         
         if (transportadoraExiste) {
           setTransportadoraSelecionada(transportadoraId);
@@ -292,12 +374,19 @@ export default function PesagemPage() {
         }
       } else if (placaData.transportadora_ids && placaData.transportadora_ids.length > 1) {
         console.log(`Placa tem ${placaData.transportadora_ids.length} transportadoras vinculadas - usuário deve escolher`);
-        // TODO: Futuramente, filtrar o select de transportadoras para mostrar apenas as vinculadas
+        // Limpar seleção se houver múltiplos vínculos
+        setTransportadoraSelecionada("");
+      } else {
+        // Limpar seleção se não houver vínculos
+        setTransportadoraSelecionada("");
       }
     } else {
       console.warn("Nenhum dado encontrado para placa:", placa);
+      // Limpar seleções se não houver dados da placa
+      setMotoristaSelecionado("");
+      setTransportadoraSelecionada("");
     }
-  }, [placaDataMap, motoristas, transportadoras]);
+  }, [placaDataMap, todosMotoristas, todasTransportadoras]);
 
   const handleStandBy = async () => {
     if (!placaSelecionada) {
@@ -417,6 +506,9 @@ export default function PesagemPage() {
     setObservacoes("");
     setTaraKg(null);
     setFasePesagem(null);
+    // Resetar filtros - mostrar todos motoristas e transportadoras
+    setMotoristas(todosMotoristas);
+    setTransportadoras(todasTransportadoras);
   };
 
   const isFinalValido = pesoLiquido > 0 && pesoTotal > 0;
@@ -635,7 +727,7 @@ export default function PesagemPage() {
       });
   }, []);
 
-  // Carregar lista de motoristas
+  // Carregar lista completa de motoristas
   useEffect(() => {
     fetch("/api/motoristas")
       .then((res) => res.json())
@@ -645,7 +737,9 @@ export default function PesagemPage() {
             { value: "", label: "Selecione um motorista" },
             ...data.items.map((m: any) => ({ value: String(m.id), label: m.nome }))
           ];
-          setMotoristas(opcoes);
+          console.log("✅ Motoristas carregados:", opcoes.length, opcoes);
+          setTodosMotoristas(opcoes);
+          // O filtro será aplicado pelo useEffect que monitora placaSelecionada
         }
       })
       .catch((error) => {
@@ -653,7 +747,7 @@ export default function PesagemPage() {
       });
   }, []);
 
-  // Carregar lista de transportadoras
+  // Carregar lista completa de transportadoras
   useEffect(() => {
     fetch("/api/transportadoras")
       .then((res) => res.json())
@@ -663,7 +757,9 @@ export default function PesagemPage() {
             { value: "", label: "Selecione uma transportadora" },
             ...data.items.map((t: any) => ({ value: String(t.id_gc), label: t.nome }))
           ];
-          setTransportadoras(opcoes);
+          console.log("✅ Transportadoras carregadas:", opcoes.length, opcoes);
+          setTodasTransportadoras(opcoes);
+          // O filtro será aplicado pelo useEffect que monitora placaSelecionada
         }
       })
       .catch((error) => {
@@ -1260,11 +1356,12 @@ export default function PesagemPage() {
                           peso={pesoParaExibir}
                           limiteEixo={limiteEixoTon}
                           excesso={excessoTon}
+                          fasePesagem={fasePesagem}
                           onChange={(e) => {
                             // O valor vem formatado do EixoInput (com vírgula em TON)
                             // Armazenar diretamente em TON
                             const valorTonStr = e.target.value;
-                            setPesosEixos({ ...pesosEixos, [eixo]: valorTonStr });
+                            setPesosEixos((prev) => ({ ...prev, [eixo]: valorTonStr }));
                           }}
                           disabled={isDisabled}
                           showTooltip={true}
